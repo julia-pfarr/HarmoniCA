@@ -109,6 +109,16 @@ def test_detect_raises_without_file():
         app.detect(None)
 
 
+def test_stepper_marks_completed_current_and_upcoming_steps():
+    markup = app.render_stepper(3)
+
+    assert markup.count('is-complete') == 2
+    assert markup.count('is-current') == 1
+    assert markup.count('is-upcoming') == 1
+    assert all(label in markup for label in app.WORKFLOW_STEPS)
+    assert 'Harmonization</div><div class="hca-step-status">Current step' in markup
+
+
 def test_run_harmonization_reuses_cached_and_runs_model_for_new(items_csv):
     calls = []
     with patch.object(HarmoniCA, '_run_model', _fake_run_model(calls)):

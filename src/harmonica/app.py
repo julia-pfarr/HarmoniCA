@@ -32,6 +32,98 @@ REVIEW_COLUMNS = [
 
 RESULT_COLUMNS = ['questionnaire', 'construct', 'item_id', 'dimension', 'dimension_label', 'confidence', 'source']
 
+WORKFLOW_STEPS = ('Upload', 'Inventory check', 'Harmonization', 'Results')
+
+APP_CSS = """
+#workflow-stepper .hca-stepper {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    padding: 20px 24px;
+    border: 1px solid #dde2e8;
+    border-radius: 10px;
+    background: #ffffff;
+    overflow: hidden;
+}
+
+#workflow-stepper .hca-step {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+#workflow-stepper .hca-step:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    left: 44px;
+    right: 10px;
+    top: 15px;
+    height: 2px;
+    background: #edf0f3;
+}
+
+#workflow-stepper .hca-step.is-complete:not(:last-child)::after {
+    background: #efd4dc;
+}
+
+#workflow-stepper .hca-step-circle {
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    margin-right: 12px;
+    border-radius: 999px;
+    background: #eef1f4;
+    color: #9aa2ad;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+#workflow-stepper .is-current .hca-step-circle,
+#workflow-stepper .is-complete .hca-step-circle {
+    background: #b64768;
+    color: #ffffff;
+}
+
+#workflow-stepper .hca-step-copy {
+    z-index: 2;
+    min-width: 0;
+    padding-right: 16px;
+    background: #ffffff;
+}
+
+#workflow-stepper .hca-step-title {
+    color: #272d37;
+    font-size: 14px;
+    font-weight: 650;
+    white-space: nowrap;
+}
+
+#workflow-stepper .is-current .hca-step-title { color: #b64768; }
+#workflow-stepper .hca-step-status { color: #77808e; font-size: 11px; }
+
+@media (max-width: 760px) {
+    #workflow-stepper .hca-stepper {
+        grid-template-columns: 1fr;
+        row-gap: 14px;
+    }
+
+    #workflow-stepper .hca-step:not(:last-child)::after {
+        left: 15px;
+        right: auto;
+        top: 36px;
+        width: 2px;
+        height: 14px;
+    }
+
+    #workflow-stepper .hca-step-copy {
+        padding-right: 0;
+    }
+}
+"""
+
 _hca = None
 
 
@@ -44,6 +136,48 @@ def get_hca(models_dir: str = None, inventory_path: str = None) -> HarmoniCA:
             inventory_path=inventory_path or str(DEFAULT_INVENTORY),
         )
     return _hca
+
+
+def render_stepper(current_step: int) -> str:
+    """Render the four-step workflow indicator shown in the UX design."""
+    current_step = max(1, min(current_step, len(WORKFLOW_STEPS)))
+    parts = ['<div class="hca-stepper" aria-label="Harmonization progress">']
+
+    for index, label in enumerate(WORKFLOW_STEPS, start=1):
+        if index < current_step:
+            css_class, marker, status = 'is-complete', '&#10003;', 'Complete'
+        elif index == current_step:
+            css_class, marker, status = 'is-current', str(index), 'Current step'
+        else:
+            css_class, marker, status = 'is-upcoming', str(index), 'Upcoming'
+
+        parts.append(
+            f'<div class="hca-step {css_class}">'
+            f'<div class="hca-step-circle">{marker}</div>'
+            f'<div class="hca-step-copy">'
+            f'<div class="hca-step-title">{label}</div>'
+            f'<div class="hca-step-status">{status}</div>'
+            f'</div></div>'
+        )
+
+    parts.append('</div>')
+    return ''.join(parts)
+
+
+def show_upload_step():
+    return render_stepper(1)
+
+
+def show_inventory_step():
+    return render_stepper(2)
+
+
+def show_harmonization_step():
+    return render_stepper(3)
+
+
+def show_results_step():
+    return render_stepper(4)
 
 
 # ---------------------------------------------------------------------------
@@ -163,10 +297,11 @@ def browse_inventory(construct_filter, questionnaire_filter, text_filter):
 # ---------------------------------------------------------------------------
 
 def build_app() -> gr.Blocks:
-    with gr.Blocks(title="HarmoniCA") as demo:
+    with gr.Blocks(title="HarmoniCA", css=APP_CSS) as demo:
         gr.Markdown("# HarmoniCA — Harmonizing Clinical Assessments")
 
         with gr.Tab("Harmonize"):
+            stepper = gr.HTML(render_stepper(1), elem_id="workflow-stepper")
             gr.Markdown(
                 "Upload a CSV with columns `construct, questionnaire, item_id, item_text`."
             )
@@ -195,15 +330,31 @@ def build_app() -> gr.Blocks:
 
             state = gr.State()
 
-            detect_btn.click(
+            items_file.change(
+                fn=show_upload_step,
+                outputs=[stepper],
+            )
+            detect_event = detect_btn.click(
                 fn=detect,
                 inputs=[items_file],
                 outputs=[state, summary_box, review_df, review_group, run_btn],
             )
-            run_btn.click(
+            detect_event.then(
+                fn=show_inventory_step,
+                outputs=[stepper],
+            )
+            run_start = run_btn.click(
+                fn=show_harmonization_step,
+                outputs=[stepper],
+            )
+            run_complete = run_start.then(
                 fn=run_harmonization,
                 inputs=[state, review_df, force_rerun],
                 outputs=[results_df, download_file],
+            )
+            run_complete.then(
+                fn=show_results_step,
+                outputs=[stepper],
             )
 
         with gr.Tab("Inventory Browser"):
