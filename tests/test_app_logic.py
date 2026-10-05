@@ -109,6 +109,17 @@ def test_detect_raises_without_file():
         app.detect(None)
 
 
+def test_upload_component_has_styling_hook():
+    demo = app.build_app()
+    component_ids = {
+        component.get('props', {}).get('elem_id')
+        for component in demo.config['components']
+    }
+
+    assert 'assessment-upload' in component_ids
+    assert '#assessment-upload' in app.APP_CSS
+
+
 def test_stepper_marks_completed_current_and_upcoming_steps():
     markup = app.render_stepper(3)
 
