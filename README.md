@@ -1,3 +1,14 @@
+---
+title: HarmoniCA
+emoji: 🧠
+colorFrom: blue
+colorTo: indigo
+sdk: gradio
+sdk_version: 6.27.0
+app_file: app.py
+pinned: false
+---
+
 # HarmoniCA - Harmonizing Clinical Assessments
 
 ## Background
@@ -34,7 +45,22 @@ anxiety,DASS,DASS_04,I experienced breathing difficulty,
 
 Models for each construct are pulled from [Huggingface](https://hf.co/collections/julia-pfarr/harmonica) during the harmonization process, so make sure to have an internet connection and enough local space (~1.5GB per model/construct).
 
-**Step 4:** Open a PR to contribute new harmonized questionnaires
+If one of your items has the same text as an item already in the inventory but under a different `item_id` (e.g. your `PHQ9_1` vs. the inventory's `PHQ-9_01`), HarmoniCA will detect it and ask you on the terminal whether it's the same item before reusing its cached assignment.
+
+### Web UI
+
+Prefer a browser over the command line? Install the UI extra and launch it:
+
+```
+pip install "pyHarmoniCA[ui]"
+harmonica-ui
+```
+
+This opens a local Gradio app with two tabs:
+- **Harmonize** — upload your `items.csv`, review any possible item_id/coding mismatches against the inventory (same confirmation as above, but as a checkbox table instead of a terminal prompt), run harmonization, and download the results CSV.
+- **Inventory Browser** — search/filter the existing `harmonized_inventory.csv` by construct, questionnaire, or item text.
+
+### Open a PR to contribute new harmonized questionnaires
 
 The `harmonized_inventory.csv` get's updated automatically. We appreciate a Pull Request on this repo with your updated `harmonized_inventory.csv` so that we can have an ever growing inventory! :-) 
 

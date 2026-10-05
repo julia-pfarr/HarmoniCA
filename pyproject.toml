@@ -14,8 +14,12 @@ dependencies = [
 ]
 dynamic = ["version"]
 
+[project.optional-dependencies]
+ui = ["gradio>=4.0"]
+
 [project.scripts]
 harmonica = "harmonica.harmonize:main"
+harmonica-ui = "harmonica.app:main"
 
 [build-system]
 requires = ["hatch-vcs", "hatchling"]

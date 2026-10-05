@@ -24,6 +24,14 @@ from .config import BEST_MODEL, KNN_K, KNN_ALPHA, BASE_MODEL_NAMES, DIMENSION_DE
 # item_id coding (e.g. 'PHQ9_1' vs the inventory's 'PHQ-9_01').
 # ---------------------------------------------------------------------------
 
+def _auto_device() -> str:
+    try:
+        import torch
+        return 'cuda' if torch.cuda.is_available() else 'cpu'
+    except ImportError:
+        return 'cpu'
+
+
 def _normalize_item_text(text) -> str:
     text = str(text).strip().lower()
     text = re.sub(r'\s+', ' ', text)
@@ -97,12 +105,15 @@ class HarmoniCA:
     ----------
     models_dir : path to the models/ directory (contains one subfolder per construct)
     inventory_path : path to harmonized_inventory.csv
+    device : 'cuda' or 'cpu' for the fine-tuned models. Defaults to 'cuda' if a
+             GPU is available, else 'cpu'.
     """
 
-    def __init__(self, models_dir: str, inventory_path: str):
+    def __init__(self, models_dir: str, inventory_path: str, device: Optional[str] = None):
         self.models_dir     = Path(models_dir)
         self.inventory_path = Path(inventory_path)
         self.inventory      = pd.read_csv(inventory_path)
+        self.device         = device or _auto_device()
         self._loaded_models: Dict = {}
 
     # ------------------------------------------------------------------
@@ -232,6 +243,40 @@ class HarmoniCA:
         ]].to_dict('records')
         return cached, missing_items
 
+    def _find_id_mismatch_candidates(
+        self,
+        questionnaire: str,
+        construct: str,
+        missing_items: List[Dict],
+    ) -> "list[tuple[Dict, pd.Series]]":
+        """
+        Among items with no item_id match, find those whose (normalized) text
+        matches an inventory item under a different item_id — a likely sign the
+        questionnaire is already in the inventory but coded differently.
+
+        Returns a list of (user_item, inventory_row) pairs. Pure lookup, no
+        side effects — used both by `_resolve_id_mismatches` (CLI/library, via
+        `confirm_match`) and by UIs that want to show candidates for review
+        before deciding.
+        """
+        sub = self.inventory[
+            (self.inventory['questionnaire'] == questionnaire) &
+            (self.inventory['construct'] == construct)
+        ]
+        if len(sub) == 0:
+            return []
+
+        text_to_row = {}
+        for _, row in sub.iterrows():
+            text_to_row.setdefault(_normalize_item_text(row['item_text']), row)
+
+        candidates = []
+        for it in missing_items:
+            inv_row = text_to_row.get(_normalize_item_text(it['item_text']))
+            if inv_row is not None:
+                candidates.append((it, inv_row))
+        return candidates
+
     def _resolve_id_mismatches(
         self,
         questionnaire: str,
@@ -241,29 +286,14 @@ class HarmoniCA:
         confirm_match: Callable[[Dict, Dict], bool],
     ) -> "tuple[List[Dict], List[Dict]]":
         """
-        For items with no item_id match, check whether their (normalized) text
-        matches an inventory item under a different item_id — a likely sign the
-        questionnaire is already in the inventory but coded differently. Ask
-        `confirm_match` whether to reuse that assignment.
+        Ask `confirm_match` whether to reuse the inventory's assignment for each
+        item found by `_find_id_mismatch_candidates`.
         """
-        sub = self.inventory[
-            (self.inventory['questionnaire'] == questionnaire) &
-            (self.inventory['construct'] == construct)
-        ]
-        if len(sub) == 0:
-            return cached, missing_items
+        candidates = self._find_id_mismatch_candidates(questionnaire, construct, missing_items)
+        candidate_ids = {it['item_id'] for it, _ in candidates}
+        still_missing = [it for it in missing_items if it['item_id'] not in candidate_ids]
 
-        text_to_row = {}
-        for _, row in sub.iterrows():
-            text_to_row.setdefault(_normalize_item_text(row['item_text']), row)
-
-        still_missing = []
-        for it in missing_items:
-            inv_row = text_to_row.get(_normalize_item_text(it['item_text']))
-            if inv_row is None:
-                still_missing.append(it)
-                continue
-
+        for it, inv_row in candidates:
             if confirm_match(it, inv_row):
                 print(f"[HarmoniCA] Reusing inventory assignment for '{it['item_id']}' "
                       f"(matched by text to '{inv_row['item_id']}').")
@@ -386,7 +416,7 @@ class HarmoniCA:
             )
 
         with _fix_tokenizer_config(encoder_dir):
-            model = model_class.load(str(model_path), device='cpu')
+            model = model_class.load(str(model_path), device=self.device)
 
         self._loaded_models[construct] = model
         return model
@@ -468,7 +498,7 @@ class HarmoniCA:
         dim_ids    = sorted(dim_defs.keys())
         dim_labels = {d: dim_defs[d]['label'] for d in dim_ids}
 
-        model = SentenceTransformer(base_model_name)
+        model = SentenceTransformer(base_model_name, device=self.device)
 
         item_embs = model.encode(item_texts, convert_to_numpy=True, show_progress_bar=False)
         item_embs = item_embs / (np.linalg.norm(item_embs, axis=1, keepdims=True) + 1e-10)

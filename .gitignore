@@ -1,7 +1,7 @@
-# Fine-tuned encoder weights — too large for git (~1.2 GB each)
-# Obtain via: python scripts/setup_encoders.py --source /path/to/models-final
-models/*/contrastive_model_encoder/
-models/*/prototype_model_encoder/
+# Downloaded model artifacts — always re-fetchable from HuggingFace Hub via
+# HF_REPOS in harmonica/config.py (or scripts/setup_encoders.py locally), so
+# none of it belongs in git.
+models/
 
 # Python
 __pycache__/

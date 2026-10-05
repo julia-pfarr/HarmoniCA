@@ -1,0 +1,15 @@
+[Unit]
+Description=HarmoniCA Gradio web UI
+After=network.target
+
+[Service]
+Type=simple
+# Replace with the Linux user that owns /opt/harmonica
+User=CHANGE_ME
+WorkingDirectory=/opt/harmonica
+ExecStart=/opt/harmonica/.venv/bin/harmonica-ui
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
