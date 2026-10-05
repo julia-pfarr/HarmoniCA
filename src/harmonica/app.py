@@ -104,6 +104,69 @@ APP_CSS = """
 #workflow-stepper .is-current .hca-step-title { color: #b64768; }
 #workflow-stepper .hca-step-status { color: #77808e; font-size: 11px; }
 
+#assessment-upload {
+    min-height: 164px;
+    overflow: hidden;
+    border: 1px dashed #e7c6d0 !important;
+    border-radius: 10px !important;
+    background: #fcf9fa !important;
+    box-shadow: none !important;
+    transition: border-color 160ms ease, background 160ms ease;
+}
+
+#assessment-upload:hover,
+#assessment-upload:focus-within {
+    border-color: #b64768 !important;
+    background: #fffafb !important;
+}
+
+#assessment-upload > div {
+    min-height: 162px;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+#assessment-upload .wrap,
+#assessment-upload .upload-container {
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+#assessment-upload button {
+    color: #b64768 !important;
+    font-weight: 650 !important;
+}
+
+#assessment-upload svg {
+    color: #b64768 !important;
+    stroke: currentColor !important;
+}
+
+#assessment-upload [class*="file-preview"] {
+    margin: 12px !important;
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    border: 0 !important;
+    border-radius: 8px !important;
+    background: #f3f4f6 !important;
+}
+
+#assessment-upload [class*="file-preview"] .wrap {
+    min-width: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+}
+
+#assessment-upload table {
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed;
+}
+
 @media (max-width: 760px) {
     #workflow-stepper .hca-stepper {
         grid-template-columns: 1fr;
@@ -120,6 +183,11 @@ APP_CSS = """
 
     #workflow-stepper .hca-step-copy {
         padding-right: 0;
+    }
+
+    #assessment-upload,
+    #assessment-upload > div {
+        min-height: 132px;
     }
 }
 """
@@ -305,7 +373,11 @@ def build_app() -> gr.Blocks:
             gr.Markdown(
                 "Upload a CSV with columns `construct, questionnaire, item_id, item_text`."
             )
-            items_file = gr.File(label="Items CSV", file_types=[".csv"])
+            items_file = gr.File(
+                label="Items CSV",
+                file_types=[".csv"],
+                elem_id="assessment-upload",
+            )
             force_rerun = gr.Checkbox(label="Ignore inventory and always run the model", value=False)
             detect_btn = gr.Button("1. Check inventory")
 
