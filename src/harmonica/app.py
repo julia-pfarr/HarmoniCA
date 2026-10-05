@@ -33,6 +33,8 @@ REVIEW_COLUMNS = [
 ]
 
 RESULT_COLUMNS = ['questionnaire', 'construct', 'item_id', 'dimension', 'dimension_label', 'confidence', 'source']
+RESULT_REVIEW_COLUMNS = ['selected', *RESULT_COLUMNS, 'review']
+RESULT_REVIEW_DATATYPES = ['bool', 'str', 'str', 'str', 'number', 'str', 'number', 'str', 'str']
 
 WORKFLOW_STEPS = ('Upload', 'Inventory check', 'Harmonization', 'Results')
 RUN_STAGES = (
@@ -171,6 +173,52 @@ APP_CSS = """
 #run-status .hca-log-line { display: grid; grid-template-columns: 44px 1fr; gap: 10px; color: #626b78; font-size: 11px; }
 #run-status .hca-log-time { color: #9aa2ad; font-family: ui-monospace, monospace; }
 
+#results-review-table table th:last-child,
+#results-review-table table td:last-child {
+    color: #b64768;
+    font-weight: 650;
+}
+
+#results-review-table table th:first-child,
+#results-review-table table td:first-child {
+    width: 72px;
+    text-align: center;
+}
+
+#result-review-panel .hca-review-card {
+    min-height: 100%;
+    padding: 18px;
+    border: 1px solid #dde2e8;
+    border-radius: 10px;
+    background: #ffffff;
+}
+
+#result-review-panel .hca-review-eyebrow {
+    margin-bottom: 6px;
+    color: #b64768;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+#result-review-panel .hca-review-title { color: #272d37; font-size: 17px; font-weight: 700; }
+#result-review-panel .hca-review-copy { margin-top: 4px; color: #77808e; font-size: 12px; }
+#result-review-panel .hca-review-grid { display: grid; gap: 12px; margin-top: 18px; }
+#result-review-panel .hca-review-label { color: #8a929e; font-size: 10px; text-transform: uppercase; }
+#result-review-panel .hca-review-value { color: #343b46; font-size: 13px; font-weight: 600; }
+
+#result-review-panel .hca-review-badge {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 5px 9px;
+    border-radius: 6px;
+    background: #f7edf0;
+    color: #b64768;
+    font-size: 11px;
+    font-weight: 650;
+}
+
 #assessment-upload {
     min-height: 164px;
     overflow: hidden;
@@ -255,6 +303,8 @@ APP_CSS = """
     #run-status .hca-run-metric { align-items: flex-end; }
     #run-status .hca-stage { grid-template-columns: 18px 1fr; }
     #run-status .hca-stage-state { grid-column: 2; }
+
+    #result-review-panel .hca-review-card { min-height: auto; }
 
     #assessment-upload,
     #assessment-upload > div {
@@ -371,6 +421,88 @@ def render_run_status(percent, processed, total, active_stage, activities):
         f'<div class="hca-run-log"><div class="hca-run-log-title">Run activity</div>'
         f'{"".join(log_lines)}</div></div>'
     )
+
+
+def format_results_for_review(results):
+    """Add UI-only selection and review action columns to result rows."""
+    frame = pd.DataFrame(results).copy()
+    for column in RESULT_COLUMNS:
+        if column not in frame.columns:
+            frame[column] = None
+
+    frame = frame[RESULT_COLUMNS]
+    frame.insert(0, 'selected', False)
+    frame['review'] = frame['source'].map(
+        lambda source: 'Model suggestion' if source == 'model' else 'Inventory record'
+    )
+    return frame[RESULT_REVIEW_COLUMNS]
+
+
+def render_result_detail_placeholder():
+    return (
+        '<div class="hca-review-card">'
+        '<div class="hca-review-eyebrow">Result review</div>'
+        '<div class="hca-review-title">Select a result row</div>'
+        '<div class="hca-review-copy">Choose any row to inspect its harmonization details.</div>'
+        '</div>'
+    )
+
+
+def render_result_detail(results, event: gr.SelectData):
+    """Render the selected result row in a compact review panel."""
+    frame = pd.DataFrame(results)
+    index = getattr(event, 'index', event)
+    row_index = index[0] if isinstance(index, (list, tuple)) else index
+    if row_index is None or frame.empty or not 0 <= int(row_index) < len(frame):
+        return render_result_detail_placeholder()
+
+    row = frame.iloc[int(row_index)]
+
+    def display(column, fallback='—'):
+        value = row.get(column, fallback)
+        if value is None or (isinstance(value, float) and pd.isna(value)):
+            value = fallback
+        return escape(str(value))
+
+    source = str(row.get('source', ''))
+    source_label = 'Model suggestion' if source == 'model' else 'Inventory record'
+    confidence = row.get('confidence')
+    if isinstance(confidence, (int, float)) and not pd.isna(confidence) and 0 <= confidence <= 1:
+        confidence_text = f'{confidence:.0%}'
+    else:
+        confidence_text = display('confidence')
+
+    return (
+        '<div class="hca-review-card">'
+        f'<div class="hca-review-eyebrow">{escape(source_label)}</div>'
+        f'<div class="hca-review-title">{display("item_id")}</div>'
+        f'<div class="hca-review-copy">{display("questionnaire")} &middot; {display("construct")}</div>'
+        '<div class="hca-review-grid">'
+        f'<div><div class="hca-review-label">Construct mapping</div>'
+        f'<div class="hca-review-value">{display("dimension_label")}</div></div>'
+        f'<div><div class="hca-review-label">Dimension</div>'
+        f'<div class="hca-review-value">{display("dimension")}</div></div>'
+        f'<div><div class="hca-review-label">Confidence</div>'
+        f'<div class="hca-review-value">{escape(confidence_text)}</div></div>'
+        '</div>'
+        f'<span class="hca-review-badge">{escape(source_label)}</span>'
+        '</div>'
+    )
+
+
+def render_checked_result_detail(results):
+    """Render the last checked result row from the editable checkbox column."""
+    frame = pd.DataFrame(results)
+    if frame.empty or 'selected' not in frame.columns:
+        return render_result_detail_placeholder()
+
+    checked_rows = [
+        index for index, value in enumerate(frame['selected'])
+        if value is True or str(value).strip().lower() == 'true'
+    ]
+    if not checked_rows:
+        return render_result_detail_placeholder()
+    return render_result_detail(frame, checked_rows[-1])
 
 
 # ---------------------------------------------------------------------------
@@ -516,7 +648,7 @@ def stream_harmonization(state, review_df, force_rerun):
             ),
             visible=True,
         ),
-        out_df[RESULT_COLUMNS],
+        format_results_for_review(out_df),
         str(out_path),
     )
 
@@ -526,7 +658,7 @@ def run_harmonization(state, review_df, force_rerun):
     final_update = None
     for final_update in stream_harmonization(state, review_df, force_rerun):
         pass
-    return final_update[1], final_update[2]
+    return final_update[1][RESULT_COLUMNS], final_update[2]
 
 
 # ---------------------------------------------------------------------------
@@ -584,7 +716,24 @@ def build_app() -> gr.Blocks:
             run_btn = gr.Button("2. Run harmonization", interactive=False)
 
             run_status = gr.HTML(value="", visible=False, elem_id="run-status")
-            results_df = gr.Dataframe(label="Results", interactive=False)
+            gr.Markdown("Select a row checkbox to review its harmonization details.")
+            results_df = gr.Dataframe(
+                headers=RESULT_REVIEW_COLUMNS,
+                datatype=RESULT_REVIEW_DATATYPES,
+                interactive=True,
+                static_columns=list(range(1, len(RESULT_REVIEW_COLUMNS))),
+                label="Results",
+                max_height=520,
+                wrap=False,
+                column_widths=[72, 130, 130, 170, 100, 190, 110, 100, 180],
+                show_search="search",
+                pinned_columns=1,
+                elem_id="results-review-table",
+            )
+            result_detail = gr.HTML(
+                render_result_detail_placeholder(),
+                elem_id="result-review-panel",
+            )
             download_file = gr.File(label="Download harmonized CSV")
 
             state = gr.State()
@@ -614,6 +763,14 @@ def build_app() -> gr.Blocks:
             run_complete.then(
                 fn=show_results_step,
                 outputs=[stepper],
+            )
+            results_df.change(
+                fn=render_checked_result_detail,
+                inputs=[results_df],
+                outputs=[result_detail],
+                queue=False,
+                scroll_to_output=True,
+                show_progress="hidden",
             )
 
         with gr.Tab("Inventory Browser"):

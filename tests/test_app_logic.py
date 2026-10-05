@@ -4,6 +4,7 @@ run_harmonization(), and browse_inventory(). These call the plain Python
 functions directly — no Gradio server is started.
 """
 from pathlib import Path
+from types import SimpleNamespace
 
 import pandas as pd
 import pytest
@@ -146,6 +147,54 @@ def test_run_status_renders_progress_stages_and_activity():
     assert '00:07' in markup
 
 
+def test_format_results_for_review_adds_checkbox_and_actions():
+    results = pd.DataFrame([
+        {'questionnaire': 'PHQ-9', 'construct': 'depression', 'item_id': 'PHQ9_1',
+         'dimension': 1, 'dimension_label': 'Mood', 'confidence': 0.9, 'source': 'model'},
+        {'questionnaire': 'GAD-7', 'construct': 'anxiety', 'item_id': 'GAD7_1',
+         'dimension': 2, 'dimension_label': 'Worry', 'confidence': 1, 'source': 'inventory'},
+    ])
+
+    review = app.format_results_for_review(results)
+
+    assert list(review.columns) == app.RESULT_REVIEW_COLUMNS
+    assert review['selected'].tolist() == [False, False]
+    assert review['review'].tolist() == [
+        'Model suggestion', 'Inventory record',
+    ]
+
+
+def test_render_result_detail_uses_selected_row_and_escapes_values():
+    results = app.format_results_for_review(pd.DataFrame([{
+        'questionnaire': 'PHQ-9', 'construct': 'depression', 'item_id': '<PHQ9_1>',
+        'dimension': 1, 'dimension_label': 'Mood & affect',
+        'confidence': 0.87, 'source': 'model',
+    }]))
+
+    markup = app.render_result_detail(results, SimpleNamespace(index=(0, 3)))
+
+    assert '&lt;PHQ9_1&gt;' in markup
+    assert '<PHQ9_1>' not in markup
+    assert 'Mood &amp; affect' in markup
+    assert '87%' in markup
+
+
+def test_render_checked_result_detail_uses_checked_row():
+    results = app.format_results_for_review(pd.DataFrame([
+        {'questionnaire': 'A', 'construct': 'first', 'item_id': 'A1',
+         'dimension': 1, 'dimension_label': 'First', 'confidence': 0.5, 'source': 'model'},
+        {'questionnaire': 'B', 'construct': 'second', 'item_id': 'B2',
+         'dimension': 2, 'dimension_label': 'Second', 'confidence': 0.9, 'source': 'model'},
+    ]))
+    results.loc[1, 'selected'] = True
+
+    markup = app.render_checked_result_detail(results)
+
+    assert 'B2' in markup
+    assert 'Second' in markup
+    assert 'Model suggestion' in markup
+
+
 def test_stream_harmonization_yields_live_and_final_updates(items_csv):
     calls = []
     with patch.object(HarmoniCA, '_run_model', _fake_run_model(calls)):
@@ -157,7 +206,7 @@ def test_stream_harmonization_yields_live_and_final_updates(items_csv):
     assert len(updates) >= 4
     assert '0%' in updates[0][0]['value']
     assert '100%' in updates[-1][0]['value']
-    assert list(updates[-1][1].columns) == app.RESULT_COLUMNS
+    assert list(updates[-1][1].columns) == app.RESULT_REVIEW_COLUMNS
     assert Path(updates[-1][2]).exists()
 
 
