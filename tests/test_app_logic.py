@@ -130,6 +130,37 @@ def test_stepper_marks_completed_current_and_upcoming_steps():
     assert 'Harmonization</div><div class="hca-step-status">Current step' in markup
 
 
+def test_run_status_renders_progress_stages_and_activity():
+    markup = app.render_run_status(
+        percent=45,
+        processed=9,
+        total=20,
+        active_stage=3,
+        activities=[(0, 'Run started.'), (7, 'Processed group.')],
+    )
+
+    assert 'width:45%' in markup
+    assert '9 processed &middot; 11 remaining' in markup
+    assert markup.count('is-complete') == 2
+    assert markup.count('is-running') == 1
+    assert '00:07' in markup
+
+
+def test_stream_harmonization_yields_live_and_final_updates(items_csv):
+    calls = []
+    with patch.object(HarmoniCA, '_run_model', _fake_run_model(calls)):
+        state, *_ = app.detect(str(items_csv))
+        updates = list(app.stream_harmonization(
+            state, pd.DataFrame(columns=app.REVIEW_COLUMNS), force_rerun=False
+        ))
+
+    assert len(updates) >= 4
+    assert '0%' in updates[0][0]['value']
+    assert '100%' in updates[-1][0]['value']
+    assert list(updates[-1][1].columns) == app.RESULT_COLUMNS
+    assert Path(updates[-1][2]).exists()
+
+
 def test_run_harmonization_reuses_cached_and_runs_model_for_new(items_csv):
     calls = []
     with patch.object(HarmoniCA, '_run_model', _fake_run_model(calls)):
