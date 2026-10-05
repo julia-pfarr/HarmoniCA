@@ -109,6 +109,17 @@ def test_detect_raises_without_file():
         app.detect(None)
 
 
+def test_upload_component_has_styling_hook():
+    demo = app.build_app()
+    component_ids = {
+        component.get('props', {}).get('elem_id')
+        for component in demo.config['components']
+    }
+
+    assert 'assessment-upload' in component_ids
+    assert '#assessment-upload' in app.APP_CSS
+
+
 def test_run_harmonization_reuses_cached_and_runs_model_for_new(items_csv):
     calls = []
     with patch.object(HarmoniCA, '_run_model', _fake_run_model(calls)):
