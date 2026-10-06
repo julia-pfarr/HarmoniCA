@@ -1,15 +1,9 @@
----
-title: HarmoniCA
-emoji: 🧠
-colorFrom: blue
-colorTo: indigo
-sdk: gradio
-sdk_version: 6.27.0
-app_file: app.py
-pinned: false
----
-
 # HarmoniCA - Harmonizing Clinical Assessments
+
+[![PyPI](https://img.shields.io/pypi/v/pyHarmoniCA)](https://pypi.org/project/pyHarmoniCA/)
+[![Python versions](https://img.shields.io/pypi/pyversions/pyHarmoniCA)](https://pypi.org/project/pyHarmoniCA/)
+[![Tests](https://github.com/julia-pfarr/HarmoniCA/actions/workflows/tests.yml/badge.svg)](https://github.com/julia-pfarr/HarmoniCA/actions/workflows/tests.yml)
+[![License: CC BY-NC 4.0](https://img.shields.io/github/license/julia-pfarr/HarmoniCA)](LICENSE)
 
 ## Background
 
@@ -65,6 +59,70 @@ This opens a local Gradio app with two tabs:
 The `harmonized_inventory.csv` get's updated automatically. We appreciate a Pull Request on this repo with your updated `harmonized_inventory.csv` so that we can have an ever growing inventory! :-) 
 
 You can try everything first with the `test-items.csv` from this repo!
+
+## Downloadable offline scoring
+
+Generate a scoring ZIP alongside item harmonization:
+
+```powershell
+harmonica --items scoring-items.csv --scoring-bundle scoring.zip
+```
+
+The definition CSV must include the usual columns plus `answer_options` and
+`scoring`, each containing a list with corresponding entries. For example:
+
+```csv
+construct,questionnaire,item_id,item_text,answer_options,scoring
+depression,Example,Example_01,I feel sad,"[0, 1, 2, 3]","[0, 1, 2, 3]"
+depression,Example,Example_02,I feel happy,"[0, 1, 2, 3]","[3, 2, 1, 0]"
+```
+
+Only questionnaire definitions are needed to generate the bundle. Dimension
+`-1` items are excluded. The ZIP includes a versioned `pipeline.json`, a frozen
+copy of `score_transformation.py`, requirements information, and instructions.
+A future hosted app can offer the ZIP returned by `harmonica.pipeline.save_bundle`
+as a download; this repository currently provides the CLI, not a website.
+
+Extract the ZIP locally and run with Python 3.10 or newer:
+
+```powershell
+python score_transformation.py --pipeline pipeline.json --responses responses.csv --output scores.csv
+```
+
+Participant CSVs require `participant_id`, `questionnaire`, and item-ID columns
+for every scored item of the questionnaires present. One row represents one
+participant/questionnaire pair. For example:
+
+```csv
+participant_id,questionnaire,Example_01,Example_02
+p1,Example,2,0
+p2,Example,0,3
+```
+
+Supply raw answer-option values; the runner applies the scoring lookup, including
+reverse scoring. Do not reverse-score responses beforehand. Empty cells are
+missing; use `--missing-values -9` for an additional sentinel. Missing columns,
+unknown questionnaires, invalid answers, and duplicate participant/questionnaire
+pairs fail before an output file is written.
+
+Dimension scores sum answered item scores and divide by the sum of those items'
+maximum scores. More than half missing, or no answers, yields an empty score.
+This adjusts the denominator rather than imputing responses. Scoring supports
+finite nonnegative item scores with positive maxima; it does not infer scoring
+rules from item text. Confidence describes item mapping and is not a scoring weight.
+
+The output also includes per-questionnaire and pooled midpoint ECDF percentiles
+estimated from the local sample. Questionnaire-averaged scores use
+`F_average^-1(F_questionnaire(x))` with linear interpolation, requiring at least
+two questionnaires with two valid scores each; otherwise that column stays empty.
+These are sample-dependent transformations, not a guarantee of clinical equivalence.
+Fixed reference norms and site-weighted transforms are not included in this initial
+portable runner. The item-count reliability flag is descriptive (4+ high, 2–3
+moderate, 1 low, 0 none), not an estimated psychometric reliability coefficient.
+
+The local runner uses only Python's standard library: no package installation,
+model weights, network access, or participant-data upload is required. Keep
+participant responses and generated scores on the researcher's approved system.
 
 ## The research behind this tool
 

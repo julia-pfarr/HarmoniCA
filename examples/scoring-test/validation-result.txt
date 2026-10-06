@@ -1,0 +1,6 @@
+PASS: 360 definition rows parse; 29 formatting repairs.
+PASS: real inventory mapping for 44 items; 5 Does-not-fit items excluded from scoring.
+PASS: ZIP extracted and scorer executed with Python -I -S.
+PASS: 44 output rows checked for minima, maxima, missing responses.
+PASS: invalid answer rejected with exit code 2; no output written.
+Remaining: 316 items need model mapping; clinical scoring metadata not validated.

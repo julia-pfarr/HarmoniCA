@@ -1,0 +1,45 @@
+participant_id,questionnaire,construct,dimension,dimension_label,n_items_mapped,n_items_responded,n_items_missing,raw_score,max_possible_score,proportion_score,reliability,q_cdf_score,pooled_cdf_score,av_cdf_score,cdf_reference
+synthetic_SCL-90_minimum,SCL-90,anxiety,2,Cognitive symptoms,12,12,0,0.0,48.0,0.0,high,0.16666666666666666,0.16666666666666666,,own_local_sample
+synthetic_SCL-90_minimum,SCL-90,anxiety,1,Somatic symptoms,4,4,0,0.0,16.0,0.0,high,0.16666666666666666,0.16666666666666666,,own_local_sample
+synthetic_SCL-90_minimum,SCL-90,depression,4,Activity & interest deficits,3,3,0,0.0,12.0,0.0,moderate,0.16666666666666666,0.16666666666666666,,own_local_sample
+synthetic_SCL-90_minimum,SCL-90,depression,3,Somatic & vegetative symptoms,1,1,0,0.0,4.0,0.0,low,0.16666666666666666,0.16666666666666666,,own_local_sample
+synthetic_SCL-90_minimum,SCL-90,depression,1,Mood & affective symptoms,3,3,0,0.0,12.0,0.0,moderate,0.16666666666666666,0.16666666666666666,,own_local_sample
+synthetic_SCL-90_minimum,SCL-90,depression,5,Anxiety & distress,2,2,0,0.0,8.0,0.0,moderate,0.16666666666666666,0.16666666666666666,,own_local_sample
+synthetic_SCL-90_minimum,SCL-90,depression,2,Cognitive & self-perception,3,3,0,0.0,12.0,0.0,moderate,0.16666666666666666,0.16666666666666666,,own_local_sample
+synthetic_SCL-90_maximum,SCL-90,anxiety,2,Cognitive symptoms,12,12,0,48.0,48.0,1.0,high,0.8333333333333334,0.8333333333333334,,own_local_sample
+synthetic_SCL-90_maximum,SCL-90,anxiety,1,Somatic symptoms,4,4,0,16.0,16.0,1.0,high,0.8333333333333334,0.8333333333333334,,own_local_sample
+synthetic_SCL-90_maximum,SCL-90,depression,4,Activity & interest deficits,3,3,0,12.0,12.0,1.0,moderate,0.8333333333333334,0.8333333333333334,,own_local_sample
+synthetic_SCL-90_maximum,SCL-90,depression,3,Somatic & vegetative symptoms,1,1,0,4.0,4.0,1.0,low,0.8333333333333334,0.8333333333333334,,own_local_sample
+synthetic_SCL-90_maximum,SCL-90,depression,1,Mood & affective symptoms,3,3,0,12.0,12.0,1.0,moderate,0.8333333333333334,0.8333333333333334,,own_local_sample
+synthetic_SCL-90_maximum,SCL-90,depression,5,Anxiety & distress,2,2,0,8.0,8.0,1.0,moderate,0.8333333333333334,0.8333333333333334,,own_local_sample
+synthetic_SCL-90_maximum,SCL-90,depression,2,Cognitive & self-perception,3,3,0,12.0,12.0,1.0,moderate,0.8333333333333334,0.8333333333333334,,own_local_sample
+synthetic_SCL-90_mixed,SCL-90,anxiety,2,Cognitive symptoms,12,12,0,23.0,48.0,0.4791666666666667,high,0.5,0.5,,own_local_sample
+synthetic_SCL-90_mixed,SCL-90,anxiety,1,Somatic symptoms,4,4,0,9.0,16.0,0.5625,high,0.5,0.5,,own_local_sample
+synthetic_SCL-90_mixed,SCL-90,depression,4,Activity & interest deficits,3,3,0,3.0,12.0,0.25,moderate,0.5,0.5,,own_local_sample
+synthetic_SCL-90_mixed,SCL-90,depression,3,Somatic & vegetative symptoms,1,1,0,1.0,4.0,0.25,low,0.5,0.5,,own_local_sample
+synthetic_SCL-90_mixed,SCL-90,depression,1,Mood & affective symptoms,3,3,0,3.0,12.0,0.25,moderate,0.5,0.5,,own_local_sample
+synthetic_SCL-90_mixed,SCL-90,depression,5,Anxiety & distress,2,2,0,5.0,8.0,0.625,moderate,0.5,0.5,,own_local_sample
+synthetic_SCL-90_mixed,SCL-90,depression,2,Cognitive & self-perception,3,3,0,9.0,12.0,0.75,moderate,0.5,0.5,,own_local_sample
+synthetic_SCL-90_missing,SCL-90,anxiety,2,Cognitive symptoms,12,0,12,,,,none,,,,own_local_sample
+synthetic_SCL-90_missing,SCL-90,anxiety,1,Somatic symptoms,4,0,4,,,,none,,,,own_local_sample
+synthetic_SCL-90_missing,SCL-90,depression,4,Activity & interest deficits,3,0,3,,,,none,,,,own_local_sample
+synthetic_SCL-90_missing,SCL-90,depression,3,Somatic & vegetative symptoms,1,0,1,,,,none,,,,own_local_sample
+synthetic_SCL-90_missing,SCL-90,depression,1,Mood & affective symptoms,3,0,3,,,,none,,,,own_local_sample
+synthetic_SCL-90_missing,SCL-90,depression,5,Anxiety & distress,2,0,2,,,,none,,,,own_local_sample
+synthetic_SCL-90_missing,SCL-90,depression,2,Cognitive & self-perception,3,0,3,,,,none,,,,own_local_sample
+synthetic_SDQ_minimum,SDQ,sleep,2,Nocturnal sleep disturbances,7,7,0,7.0,35.0,0.2,high,0.16666666666666666,0.16666666666666666,,own_local_sample
+synthetic_SDQ_minimum,SDQ,sleep,3,REM sleep behavior and dreaming,1,1,0,1.0,5.0,0.2,low,0.16666666666666666,0.16666666666666666,,own_local_sample
+synthetic_SDQ_minimum,SDQ,sleep,4,Sleep-disordered breathing,2,2,0,2.0,10.0,0.2,moderate,0.16666666666666666,0.16666666666666666,,own_local_sample
+synthetic_SDQ_minimum,SDQ,sleep,1,Daytime sleepiness and alertness,1,1,0,1.0,5.0,0.2,low,0.3333333333333333,0.3333333333333333,,own_local_sample
+synthetic_SDQ_maximum,SDQ,sleep,2,Nocturnal sleep disturbances,7,7,0,35.0,35.0,1.0,high,0.8333333333333334,0.8333333333333334,,own_local_sample
+synthetic_SDQ_maximum,SDQ,sleep,3,REM sleep behavior and dreaming,1,1,0,5.0,5.0,1.0,low,0.8333333333333334,0.8333333333333334,,own_local_sample
+synthetic_SDQ_maximum,SDQ,sleep,4,Sleep-disordered breathing,2,2,0,10.0,10.0,1.0,moderate,0.8333333333333334,0.8333333333333334,,own_local_sample
+synthetic_SDQ_maximum,SDQ,sleep,1,Daytime sleepiness and alertness,1,1,0,5.0,5.0,1.0,low,0.8333333333333334,0.8333333333333334,,own_local_sample
+synthetic_SDQ_mixed,SDQ,sleep,2,Nocturnal sleep disturbances,7,7,0,18.0,35.0,0.5142857142857142,high,0.5,0.5,,own_local_sample
+synthetic_SDQ_mixed,SDQ,sleep,3,REM sleep behavior and dreaming,1,1,0,3.0,5.0,0.6,low,0.5,0.5,,own_local_sample
+synthetic_SDQ_mixed,SDQ,sleep,4,Sleep-disordered breathing,2,2,0,9.0,10.0,0.9,moderate,0.5,0.5,,own_local_sample
+synthetic_SDQ_mixed,SDQ,sleep,1,Daytime sleepiness and alertness,1,1,0,1.0,5.0,0.2,low,0.3333333333333333,0.3333333333333333,,own_local_sample
+synthetic_SDQ_missing,SDQ,sleep,2,Nocturnal sleep disturbances,7,0,7,,,,none,,,,own_local_sample
+synthetic_SDQ_missing,SDQ,sleep,3,REM sleep behavior and dreaming,1,0,1,,,,none,,,,own_local_sample
+synthetic_SDQ_missing,SDQ,sleep,4,Sleep-disordered breathing,2,0,2,,,,none,,,,own_local_sample
+synthetic_SDQ_missing,SDQ,sleep,1,Daytime sleepiness and alertness,1,0,1,,,,none,,,,own_local_sample
