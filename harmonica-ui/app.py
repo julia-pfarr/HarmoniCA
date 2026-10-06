@@ -6,7 +6,7 @@ import shutil
 import importlib.util
 import sys
 import html
-from visuals import flow_figure, coverage_figure, confidence_figure, decorate, probabilities
+from visuals import comparison_figure, flow_figure, coverage_figure, confidence_figure, decorate, probabilities
 import plotly.express as px
 import threading
 import time
@@ -309,8 +309,9 @@ with prepare:
     left, right = st.columns([3,2])
     with left:
         st.subheader('Questionnaire input')
-        mode = st.radio('Input source', ['Upload a file','Explore reference inventory'], horizontal=True)
-        upload = st.file_uploader('Upload CSV or Excel', type=['csv','xlsx'])
+        mode = st.radio('Input source', ['Upload files','Explore reference inventory'], horizontal=True)
+        uploads = st.file_uploader('Upload CSV or Excel files', type=['csv','xlsx'], accept_multiple_files=True)
+        st.caption('Select one format per questionnaire. Files sharing questionnaire names are combined; conflicting item IDs must be resolved.')
         sample = Path(__file__).with_name('example_items.csv').read_bytes()
         st.download_button('Download input template', sample, 'example_items.csv','text/csv')
         if mode == 'Explore reference inventory':
@@ -319,51 +320,73 @@ with prepare:
             choices = sorted(seed.loc[seed.construct==reference_construct,'questionnaire'].unique())
             reference_q = st.multiselect('Reference questionnaires',choices,default=choices[:2])
             raw = seed.loc[(seed.construct==reference_construct)&seed.questionnaire.isin(reference_q),COLUMNS].to_csv(index=False).encode()
+            sources = [('reference_items.csv', raw)]
         else:
-            raw = upload.getvalue() if upload else None
-        if raw is not None:
-            source_name = upload.name if mode == 'Upload a file' else 'reference_items.csv'
+            sources = [(u.name, u.getvalue()) for u in uploads]
+        source_name = ', '.join(name for name, _ in sources)
+        frames, summaries = [], []
+        raw = None
+        for index, (filename, file_raw) in enumerate(sources):
+            raw = file_raw
+            source_name_for_file = filename
+            file_key = hashlib.sha256(filename.encode()+raw).hexdigest()[:16]+'_'+str(index)
+            with st.expander(filename, expanded=True):
+                try:
+                    if len(raw) > 10*1024*1024:
+                        raise ValueError('File exceeds 10 MB.')
+                    if source_name_for_file.lower().endswith('.xlsx'):
+                        workbook = pd.ExcelFile(io.BytesIO(raw))
+                        sheet = st.selectbox('Worksheet', workbook.sheet_names, key='sheet_'+file_key)
+                        frame = pd.read_excel(workbook, sheet_name=sheet, dtype=str).fillna('')
+                        file_key += hashlib.sha256(sheet.encode()).hexdigest()[:8]
+                    else:
+                        detected = detect_separator(raw)
+                        separator = st.selectbox('CSV separator', SEPARATORS, index=SEPARATORS.index(detected),
+                                                 format_func=lambda x: {',':'Comma',';':'Semicolon','\t':'Tab'}[x],
+                                                 key='sep_'+file_key,
+                                                 help='Detected automatically from the header row. Change it if columns look wrong.')
+                        frame = pd.read_csv(io.BytesIO(raw), sep=separator, dtype=str, keep_default_na=False, encoding='utf-8-sig')
+                    frame.columns = frame.columns.astype(str).str.strip()
+                    if frame.empty or not len(frame.columns):
+                        raise ValueError('No item rows found.')
+                    st.caption(f'Loaded {len(frame)} rows. Match your columns to HarmoniCA fields.')
+                    mapping = {}
+                    cols = st.columns(2)
+                    for i, field in enumerate(COLUMNS):
+                        options = ['— Select —'] + list(frame.columns)
+                        with cols[i % 2]:
+                            mapping[field] = st.selectbox(field, options, index=options.index(field) if field in options else 0, key=f'map_{field}_{file_key}')
+                    chosen = list(mapping.values())
+                    if '— Select —' in chosen:
+                        st.warning('Match all four columns to enable running.')
+                    elif len(set(chosen)) != 4:
+                        st.error('Choose a different source column for each field.')
+                    else:
+                        mapped = pd.DataFrame({field:frame[column] for field,column in mapping.items()})
+                        st.caption('Edit input items if needed')
+                        edited = st.data_editor(mapped, hide_index=True, num_rows='dynamic', width='stretch', key='input_'+file_key+hashlib.sha256(str(mapping).encode()).hexdigest())
+                        file_items = parse_items(edited.to_csv(index=False).encode())
+                        unknown = set(file_items.construct)-set(CATALOG['CONSTRUCTS'])
+                        if unknown:
+                            raise ValueError('Unsupported constructs: '+', '.join(sorted(unknown))+'. Supported: '+', '.join(CATALOG['CONSTRUCTS']))
+                        frames.append(file_items)
+                        summaries.append({'File': filename, 'Items': len(file_items), 'Questionnaires': ', '.join(sorted(file_items.questionnaire.unique()))})
+                except Exception as exc:
+                    st.error(f'{filename}: {exc}')
+        if sources and len(frames) == len(sources):
             try:
-                if len(raw) > 10*1024*1024:
-                    raise ValueError('File exceeds 10 MB.')
-                if source_name.lower().endswith('.xlsx'):
-                    workbook = pd.ExcelFile(io.BytesIO(raw))
-                    sheet = st.selectbox('Worksheet', workbook.sheet_names)
-                    frame = pd.read_excel(workbook, sheet_name=sheet, dtype=str).fillna('')
-                else:
-                    detected = detect_separator(raw)
-                    separator = st.selectbox('CSV separator', SEPARATORS, index=SEPARATORS.index(detected),
-                                             format_func=lambda x: {',':'Comma',';':'Semicolon','\t':'Tab'}[x],
-                                             key='sep_'+hashlib.sha256(raw).hexdigest()[:10],
-                                             help='Detected automatically from the header row. Change it if columns look wrong.')
-                    frame = pd.read_csv(io.BytesIO(raw), sep=separator, dtype=str, keep_default_na=False, encoding='utf-8-sig')
-                frame.columns = frame.columns.astype(str).str.strip()
-                if frame.empty or not len(frame.columns):
-                    raise ValueError('No item rows found.')
-                st.caption(f'Loaded {len(frame)} rows. Match your columns to HarmoniCA fields.')
-                mapping = {}
-                cols = st.columns(2)
-                for i, field in enumerate(COLUMNS):
-                    options = ['— Select —'] + list(frame.columns)
-                    with cols[i % 2]:
-                        mapping[field] = st.selectbox(field, options, index=options.index(field) if field in options else 0, key=f'map_{field}_{hashlib.sha256(raw).hexdigest()[:10]}')
-                chosen = list(mapping.values())
-                if '— Select —' in chosen:
-                    st.warning('Match all four columns to enable running.')
-                elif len(set(chosen)) != 4:
-                    st.error('Choose a different source column for each field.')
-                else:
-                    mapped = pd.DataFrame({field:frame[column] for field,column in mapping.items()})
-                    with st.expander('Edit input items',expanded=False):
-                        edited = st.data_editor(mapped, hide_index=True, num_rows='dynamic', width='stretch', key='input_'+hashlib.sha256(raw+str(mapping).encode()).hexdigest())
-                    items = parse_items(edited.to_csv(index=False).encode())
-                    unknown = set(items.construct)-set(CATALOG['CONSTRUCTS'])
-                    if unknown:
-                        raise ValueError('Unsupported constructs: '+', '.join(sorted(unknown))+'. Supported: '+', '.join(CATALOG['CONSTRUCTS']))
+                items = parse_items(pd.concat(frames, ignore_index=True).to_csv(index=False).encode())
+                st.dataframe(pd.DataFrame(summaries), hide_index=True, width='stretch')
+                st.success(f'{len(sources)} files ready: {len(items)} items across {items.questionnaire.nunique()} questionnaires.')
             except Exception as exc:
-                st.error(f'Input needs attention: {exc}')
+                items = None
+                st.error(f'Combined input needs attention: {exc}')
+        elif sources:
+            st.warning('Complete the column mapping and resolve errors in every file before running.')
         else:
-            st.info('Upload a file or choose “Explore reference inventory”. The Selection panel will explain what is needed.')
+            st.info('Upload files or choose “Explore reference inventory”.')
+        # Canonical combined bytes identify the complete input in the run record.
+        raw = items.to_csv(index=False).encode() if items is not None else None
     with right:
         st.subheader('Selection')
         if items is not None:
@@ -653,6 +676,8 @@ with explore:
                 st.subheader('Assignment confidence')
                 st.plotly_chart(confidence_figure(subset),width='stretch',key='confidence')
             st.caption('Coverage is item composition, not harmonized participant severity. Inventory confidence may reflect stored expert agreement rather than a fresh model score; full distributions are unavailable for those rows.')
+            st.subheader('Compare questionnaires')
+            st.plotly_chart(comparison_figure(subset), width='stretch', key='questionnaire_comparison')
             st.subheader('Items behind the view')
             st.caption('Filters above update these cards. Open Item inspector to record decisions.')
             for _,card in subset.head(6).iterrows():

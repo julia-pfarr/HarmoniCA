@@ -36,3 +36,13 @@ def probabilities(value):
     if not isinstance(data,dict):return {}
     try:return {str(k):float(v) for k,v in data.items()}
     except (ValueError,TypeError):return {}
+
+
+def comparison_figure(df):
+    counts = pd.crosstab(df.questionnaire, df.dimension_label)
+    percentages = counts.div(counts.sum(axis=1), axis=0) * 100
+    frame = percentages.rename_axis('questionnaire').reset_index().melt(
+        id_vars='questionnaire', var_name='dimension', value_name='percentage')
+    return decorate(px.bar(frame, x='dimension', y='percentage', color='questionnaire',
+                           barmode='group', labels={'percentage': '% of questionnaire items',
+                                                   'dimension': 'Dimension'}))

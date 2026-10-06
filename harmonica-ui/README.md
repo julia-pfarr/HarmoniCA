@@ -62,3 +62,7 @@ Upstream project: https://github.com/julia-pfarr/HarmoniCA . Assets/reference_in
 ## Tested
 
 Actual inventory execution passed for 895 unique reference items across all six constructs. Real anxiety inference on new wording also passed with downloaded upstream weights. All 15 upstream tests passed, and Streamlit dashboard interaction checks passed. Other models were not inference-tested. See VALIDATION.md and inference_verification.txt.
+
+## Multiple questionnaire files
+
+Upload several CSV and XLSX files together. Choose one worksheet and map the four required columns separately for each file. Every file must validate before running. The combined input remains limited to 10,000 items; duplicate composite item keys are rejected rather than silently removed. Preserve distinct questionnaire names when comparing instruments. Upload only one format per questionnaire. The coverage map and grouped percentage bars compare item composition within one construct, not patient severity.
