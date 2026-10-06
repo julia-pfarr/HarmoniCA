@@ -6,12 +6,13 @@ Run locally with:
 or:
     python -m harmonica.app
 
-Two tabs:
+Three tabs (the Data Harmonizer lives in the ``harmonica.uploader`` package):
   - Harmonize: upload an items CSV, review any possible item_id/coding
     mismatches against the inventory, run harmonization, download results.
   - Inventory Browser: search/filter the existing harmonized_inventory.csv.
+  - Data Harmonizer: enter or upload items under the same rules as "Check inventory"
+    and see how many are already in the inventory, duplicates, or new.
 """
-import tempfile
 from pathlib import Path
 
 import gradio as gr
@@ -19,18 +20,18 @@ import pandas as pd
 
 from harmonica.harmonica import HarmoniCA
 from harmonica.harmonica.config import CONSTRUCTS
+from harmonica.uploader.inventory_check import DUPLICATE_COLUMNS, check_items_against_inventory
+from harmonica.uploader.rules import CORE_COLUMNS, ItemsFormatError, check_constructs
+from harmonica.uploader.runner import RESULT_COLUMNS, decisions_from_review, run_groups, write_results_csv
+from harmonica.uploader.tab import UploaderTab
 
 DEFAULT_MODELS_DIR = Path(__file__).parent / 'models'
 DEFAULT_INVENTORY = Path(__file__).parent / 'inventory' / 'harmonized_inventory.csv'
 
-REQUIRED_COLUMNS = {'construct', 'questionnaire', 'item_id', 'item_text'}
+REQUIRED_COLUMNS = set(CORE_COLUMNS)
 
-REVIEW_COLUMNS = [
-    'questionnaire', 'your_item_id', 'your_item_text',
-    'matched_inventory_item_id', 'matched_item_text', 'dimension_label', 'same_item?',
-]
+REVIEW_COLUMNS = DUPLICATE_COLUMNS + ['same_item?']
 
-RESULT_COLUMNS = ['questionnaire', 'construct', 'item_id', 'dimension', 'dimension_label', 'confidence', 'source']
 
 _hca = None
 
@@ -61,36 +62,14 @@ def detect(items_file):
     if missing_cols:
         raise gr.Error(f"Items CSV is missing required columns: {sorted(missing_cols)}")
 
-    unknown_constructs = set(items_df['construct'].unique()) - set(CONSTRUCTS)
-    if unknown_constructs:
-        raise gr.Error(f"Unknown construct(s) {sorted(unknown_constructs)}. Supported: {CONSTRUCTS}")
+    try:
+        check_constructs(items_df['construct'].unique(), CONSTRUCTS)
+    except ItemsFormatError as exc:
+        raise gr.Error(str(exc))
 
-    hca = get_hca()
-    groups = []
-    review_rows = []
-    n_cached, n_new = 0, 0
-
-    for (construct, questionnaire), group in items_df.groupby(['construct', 'questionnaire']):
-        items = group[['item_id', 'item_text']].to_dict('records')
-        groups.append({'questionnaire': questionnaire, 'construct': construct, 'items': items})
-
-        cached, missing = hca._check_inventory(questionnaire, construct, items)
-        n_cached += len(cached)
-
-        candidates = hca._find_id_mismatch_candidates(questionnaire, construct, missing)
-        candidate_ids = {it['item_id'] for it, _ in candidates}
-        n_new += len([it for it in missing if it['item_id'] not in candidate_ids])
-
-        for it, inv_row in candidates:
-            review_rows.append({
-                'questionnaire': questionnaire,
-                'your_item_id': it['item_id'],
-                'your_item_text': it['item_text'],
-                'matched_inventory_item_id': inv_row['item_id'],
-                'matched_item_text': inv_row['item_text'],
-                'dimension_label': inv_row['dimension_label'],
-                'same_item?': True,
-            })
+    report = check_items_against_inventory(items_df, get_hca())
+    groups, review_rows = report.groups, report.review_rows
+    n_cached, n_new = report.n_cached, report.n_new
 
     review_df = pd.DataFrame(review_rows, columns=REVIEW_COLUMNS)
 
@@ -109,36 +88,9 @@ def run_harmonization(state, review_df, force_rerun):
     if not state or not state.get('groups'):
         raise gr.Error("Click 'Check inventory' first.")
 
-    hca = get_hca()
+    out_df = run_groups(get_hca(), state['groups'], decisions_from_review(review_df), force_rerun)
 
-    decisions = {}
-    if review_df is not None and len(review_df) > 0:
-        for _, row in review_df.iterrows():
-            decisions[(row['questionnaire'], row['your_item_id'])] = bool(row['same_item?'])
-
-    all_results = []
-    for g in state['groups']:
-        questionnaire, construct, items = g['questionnaire'], g['construct'], g['items']
-
-        def confirm_match(user_item, inv_row, _q=questionnaire):
-            return decisions.get((_q, user_item['item_id']), True)
-
-        result = hca.harmonize(
-            questionnaire=questionnaire, construct=construct, items=items,
-            force_rerun=force_rerun, confirm_match=confirm_match,
-        )
-        group_df = pd.DataFrame(result['assignments'])
-        group_df.insert(0, 'questionnaire', questionnaire)
-        group_df.insert(1, 'construct', construct)
-        group_df['source'] = result['source']
-        all_results.append(group_df)
-
-    out_df = pd.concat(all_results, ignore_index=True)
-
-    out_path = Path(tempfile.mkdtemp()) / 'harmonized_results.csv'
-    out_df.to_csv(out_path, index=False)
-
-    return out_df[RESULT_COLUMNS], str(out_path)
+    return out_df[RESULT_COLUMNS], write_results_csv(out_df)
 
 
 # ---------------------------------------------------------------------------
@@ -157,6 +109,10 @@ def browse_inventory(construct_filter, questionnaire_filter, text_filter):
 
     return inv, f"{len(inv)} item(s)"
 
+
+# ---------------------------------------------------------------------------
+# Tab 3: Data Harmonizer
+# ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
 # App
@@ -227,6 +183,8 @@ def build_app() -> gr.Blocks:
                 inputs=[construct_dropdown, questionnaire_search, text_search],
                 outputs=[inventory_df, count_box],
             )
+
+        UploaderTab(get_hca=get_hca).build()
 
     return demo
 
