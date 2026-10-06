@@ -8,6 +8,18 @@ from pathlib import Path
 import pandas as pd
 
 COLUMNS = ['construct', 'questionnaire', 'item_id', 'item_text']
+SEPARATORS = [',', ';', '\t']
+
+
+def detect_separator(data):
+    """Guess the CSV separator from the header line, which (unlike item texts)
+    rarely contains commas. Excel in e.g. French locales saves with ';'."""
+    header = data[:65536].decode('utf-8-sig', errors='replace').splitlines()[:1]
+    if not header:
+        return ','
+    counts = {sep: header[0].count(sep) for sep in SEPARATORS}
+    best = max(SEPARATORS, key=lambda sep: counts[sep])
+    return best if counts[best] else ','
 
 
 def parse_items(data):
@@ -37,8 +49,53 @@ def parse_items(data):
     return df
 
 
-def run_harmonica(df, force=False, timeout=1800):
+def _normalize(text):
+    # Same normalisation as engine_worker.py and the upstream engine
+    return ' '.join(str(text).strip().lower().split()).strip(' .?!"\'')
+
+
+def inventory_check(df, force=False):
+    """Classify items the way the engine will treat them, without running it.
+
+    Returns a copy of `df` with a 'route' column:
+      'inventory' — exact match (same construct, questionnaire, item_id and wording): reused
+      'duplicate' — same wording as an inventory item under a different item_id: sent to the model
+      'new'       — not in the inventory: sent to the model
+    With `force`, every item is sent to the model: exact matches become 'new' (they
+    are re-run, not duplicates).
+    """
+    inv = pd.read_csv(Path(__file__).resolve().parent/'assets'/'reference_inventory.csv', dtype=str, keep_default_na=False)
+    inv_key = {(r.construct, r.questionnaire, r.item_id): _normalize(r.item_text) for r in inv.itertuples()}
+    inv_text = {(r.construct, r.questionnaire, _normalize(r.item_text)) for r in inv.itertuples()}
+    routes = []
+    for r in df.itertuples():
+        text = _normalize(r.item_text)
+        if inv_key.get((r.construct, r.questionnaire, r.item_id)) == text:
+            routes.append('new' if force else 'inventory')
+        elif (r.construct, r.questionnaire, text) in inv_text:
+            routes.append('duplicate')
+        else:
+            routes.append('new')
+    out = df.copy()
+    out['route'] = routes
+    return out
+
+
+PROGRESS_PREFIX = '@@HARMONICA_PROGRESS '
+
+
+def run_harmonica(df, force=False, timeout=1800, on_progress=None):
+    """Run the engine in an isolated worker process.
+
+    `on_progress(event)` is called about twice a second while the worker runs:
+    `event` is None on a plain tick (e.g. to refresh elapsed time), or a dict
+    {'construct', 'questionnaire', 'items'} each time a questionnaire finishes.
+    """
+    import json
+    import queue
     import sys
+    import threading
+    import time
     root = Path(__file__).resolve().parent
     cache = Path(os.environ.get('HARMONICA_MODELS_DIR', str(Path.home()/'.cache'/'harmonica-ui'/'models'))).expanduser().resolve()
     cache.mkdir(parents=True, exist_ok=True)
@@ -48,11 +105,38 @@ def run_harmonica(df, force=False, timeout=1800):
         df.to_csv(source, index=False)
         shutil.copyfile(root/'assets'/'reference_inventory.csv', inventory)
         command = [sys.executable, str(root/'engine_worker.py'), str(source), str(target), str(inventory), str(cache), '1' if force else '0']
-        try:
-            proc = subprocess.run(command, cwd=work, capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=timeout)
-        except subprocess.TimeoutExpired as exc:
-            raise RuntimeError(f'Run exceeded {timeout // 60} minutes. Reduce the batch or increase the timeout.') from exc
-        log = (proc.stdout + '\n' + proc.stderr).strip()
+        proc = subprocess.Popen(command, cwd=work, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
+                                text=True, encoding='utf-8', errors='replace', env={**os.environ, 'PYTHONUNBUFFERED': '1'})
+        lines = queue.Queue()
+
+        def read_output():
+            # Reading in a thread keeps the timeout check and progress ticks running
+            for output_line in proc.stdout:
+                lines.put(output_line)
+            lines.put(None)
+
+        threading.Thread(target=read_output, daemon=True).start()
+        log_lines, deadline, finished = [], time.monotonic() + timeout, False
+        while not finished:
+            if time.monotonic() > deadline:
+                proc.kill()
+                raise RuntimeError(f'Run exceeded {timeout // 60} minutes. Reduce the batch or increase the timeout.')
+            try:
+                line = lines.get(timeout=0.5)
+            except queue.Empty:
+                line = ''
+            if line is None:
+                finished = True
+            elif line.startswith(PROGRESS_PREFIX):
+                if on_progress:
+                    on_progress(json.loads(line[len(PROGRESS_PREFIX):]))
+                continue
+            elif line:
+                log_lines.append(line)
+            if on_progress:
+                on_progress(None)
+        proc.wait()
+        log = ''.join(log_lines).strip()
         if proc.returncode:
             raise RuntimeError(f'HarmoniCA exited with code {proc.returncode}.\n{log[-12000:]}')
         if not target.is_file() or target.stat().st_size == 0:

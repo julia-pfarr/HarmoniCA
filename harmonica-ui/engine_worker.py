@@ -30,4 +30,6 @@ for (construct,questionnaire),group in items.groupby(['construct','questionnaire
             item['probability_distribution']=json.dumps(item['probability_distribution'])
         item.update(construct=construct,questionnaire=questionnaire,source=result['source'])
         rows.append(item)
+    # Progress line read by backend.run_harmonica (prefix must match PROGRESS_PREFIX there)
+    print('@@HARMONICA_PROGRESS '+json.dumps({'construct':construct,'questionnaire':questionnaire,'items':len(group)}),flush=True)
 pd.DataFrame(rows).to_csv(output,index=False)

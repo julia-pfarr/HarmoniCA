@@ -1,8 +1,19 @@
 [theme]
+# Colours and font from the HarmoniCA Figma template (same as the Gradio app)
 base = "light"
-primaryColor = "#087F8C"
-backgroundColor = "#F6F8FC"
-secondaryBackgroundColor = "#E9EFF5"
-textColor = "#172B43"
+primaryColor = "#A33B5C"
+backgroundColor = "#F6F7F9"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#1F2430"
+linkColor = "#A33B5C"
+borderColor = "#E5E7EB"
+showWidgetBorder = true
+baseRadius = "8px"
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+codeFont = "JetBrains Mono:https://fonts.googleapis.com/css2?family=JetBrains+Mono&display=swap"
+
+[theme.sidebar]
+backgroundColor = "#FFFFFF"
+
 [server]
 maxUploadSize = 10
