@@ -3,7 +3,7 @@
 [![PyPI](https://img.shields.io/pypi/v/pyHarmoniCA)](https://pypi.org/project/pyHarmoniCA/)
 [![Python versions](https://img.shields.io/pypi/pyversions/pyHarmoniCA)](https://pypi.org/project/pyHarmoniCA/)
 [![Tests](https://github.com/julia-pfarr/HarmoniCA/actions/workflows/tests.yml/badge.svg)](https://github.com/julia-pfarr/HarmoniCA/actions/workflows/tests.yml)
-[![License: CC BY-NC 4.0](https://img.shields.io/github/license/julia-pfarr/HarmoniCA)](LICENSE)
+[![License: CC BY-NC 4.0](https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc/4.0/)
 
 ## Background
 
