@@ -1,0 +1,631 @@
+{
+  "schema_version": 1,
+  "missing_threshold": 0.5,
+  "items": [
+    {
+      "construct": "anxiety",
+      "questionnaire": "SCL-90",
+      "item_id": "SCL-90_13",
+      "dimension": 2,
+      "dimension_label": "Cognitive symptoms",
+      "response_scores": {
+        "Not at all": 0.0,
+        "A little bit": 1.0,
+        "Moderately": 2.0,
+        "Quite a bit": 3.0,
+        "Extremely": 4.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.721
+    },
+    {
+      "construct": "anxiety",
+      "questionnaire": "SCL-90",
+      "item_id": "SCL-90_17",
+      "dimension": 1,
+      "dimension_label": "Somatic symptoms",
+      "response_scores": {
+        "Not at all": 0.0,
+        "A little bit": 1.0,
+        "Moderately": 2.0,
+        "Quite a bit": 3.0,
+        "Extremely": 4.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.9
+    },
+    {
+      "construct": "anxiety",
+      "questionnaire": "SCL-90",
+      "item_id": "SCL-90_23",
+      "dimension": 2,
+      "dimension_label": "Cognitive symptoms",
+      "response_scores": {
+        "Not at all": 0.0,
+        "A little bit": 1.0,
+        "Moderately": 2.0,
+        "Quite a bit": 3.0,
+        "Extremely": 4.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.721
+    },
+    {
+      "construct": "anxiety",
+      "questionnaire": "SCL-90",
+      "item_id": "SCL-90_25",
+      "dimension": 2,
+      "dimension_label": "Cognitive symptoms",
+      "response_scores": {
+        "Not at all": 0.0,
+        "A little bit": 1.0,
+        "Moderately": 2.0,
+        "Quite a bit": 3.0,
+        "Extremely": 4.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.9
+    },
+    {
+      "construct": "anxiety",
+      "questionnaire": "SCL-90",
+      "item_id": "SCL-90_33",
+      "dimension": 2,
+      "dimension_label": "Cognitive symptoms",
+      "response_scores": {
+        "Not at all": 0.0,
+        "A little bit": 1.0,
+        "Moderately": 2.0,
+        "Quite a bit": 3.0,
+        "Extremely": 4.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.642
+    },
+    {
+      "construct": "anxiety",
+      "questionnaire": "SCL-90",
+      "item_id": "SCL-90_39",
+      "dimension": 1,
+      "dimension_label": "Somatic symptoms",
+      "response_scores": {
+        "Not at all": 0.0,
+        "A little bit": 1.0,
+        "Moderately": 2.0,
+        "Quite a bit": 3.0,
+        "Extremely": 4.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 1.0
+    },
+    {
+      "construct": "anxiety",
+      "questionnaire": "SCL-90",
+      "item_id": "SCL-90_47",
+      "dimension": 2,
+      "dimension_label": "Cognitive symptoms",
+      "response_scores": {
+        "Not at all": 0.0,
+        "A little bit": 1.0,
+        "Moderately": 2.0,
+        "Quite a bit": 3.0,
+        "Extremely": 4.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.732
+    },
+    {
+      "construct": "anxiety",
+      "questionnaire": "SCL-90",
+      "item_id": "SCL-90_50",
+      "dimension": 2,
+      "dimension_label": "Cognitive symptoms",
+      "response_scores": {
+        "Not at all": 0.0,
+        "A little bit": 1.0,
+        "Moderately": 2.0,
+        "Quite a bit": 3.0,
+        "Extremely": 4.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.805
+    },
+    {
+      "construct": "anxiety",
+      "questionnaire": "SCL-90",
+      "item_id": "SCL-90_57",
+      "dimension": 1,
+      "dimension_label": "Somatic symptoms",
+      "response_scores": {
+        "Not at all": 0.0,
+        "A little bit": 1.0,
+        "Moderately": 2.0,
+        "Quite a bit": 3.0,
+        "Extremely": 4.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.458
+    },
+    {
+      "construct": "anxiety",
+      "questionnaire": "SCL-90",
+      "item_id": "SCL-90_70",
+      "dimension": 2,
+      "dimension_label": "Cognitive symptoms",
+      "response_scores": {
+        "Not at all": 0.0,
+        "A little bit": 1.0,
+        "Moderately": 2.0,
+        "Quite a bit": 3.0,
+        "Extremely": 4.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.663
+    },
+    {
+      "construct": "anxiety",
+      "questionnaire": "SCL-90",
+      "item_id": "SCL-90_72",
+      "dimension": 2,
+      "dimension_label": "Cognitive symptoms",
+      "response_scores": {
+        "Not at all": 0.0,
+        "A little bit": 1.0,
+        "Moderately": 2.0,
+        "Quite a bit": 3.0,
+        "Extremely": 4.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.521
+    },
+    {
+      "construct": "anxiety",
+      "questionnaire": "SCL-90",
+      "item_id": "SCL-90_75",
+      "dimension": 2,
+      "dimension_label": "Cognitive symptoms",
+      "response_scores": {
+        "Not at all": 0.0,
+        "A little bit": 1.0,
+        "Moderately": 2.0,
+        "Quite a bit": 3.0,
+        "Extremely": 4.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.663
+    },
+    {
+      "construct": "anxiety",
+      "questionnaire": "SCL-90",
+      "item_id": "SCL-90_78",
+      "dimension": 1,
+      "dimension_label": "Somatic symptoms",
+      "response_scores": {
+        "Not at all": 0.0,
+        "A little bit": 1.0,
+        "Moderately": 2.0,
+        "Quite a bit": 3.0,
+        "Extremely": 4.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.732
+    },
+    {
+      "construct": "anxiety",
+      "questionnaire": "SCL-90",
+      "item_id": "SCL-90_80",
+      "dimension": 2,
+      "dimension_label": "Cognitive symptoms",
+      "response_scores": {
+        "Not at all": 0.0,
+        "A little bit": 1.0,
+        "Moderately": 2.0,
+        "Quite a bit": 3.0,
+        "Extremely": 4.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.9
+    },
+    {
+      "construct": "anxiety",
+      "questionnaire": "SCL-90",
+      "item_id": "SCL-90_82",
+      "dimension": 2,
+      "dimension_label": "Cognitive symptoms",
+      "response_scores": {
+        "Not at all": 0.0,
+        "A little bit": 1.0,
+        "Moderately": 2.0,
+        "Quite a bit": 3.0,
+        "Extremely": 4.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.521
+    },
+    {
+      "construct": "anxiety",
+      "questionnaire": "SCL-90",
+      "item_id": "SCL-90_86",
+      "dimension": 2,
+      "dimension_label": "Cognitive symptoms",
+      "response_scores": {
+        "Not at all": 0.0,
+        "A little bit": 1.0,
+        "Moderately": 2.0,
+        "Quite a bit": 3.0,
+        "Extremely": 4.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 1.0
+    },
+    {
+      "construct": "depression",
+      "questionnaire": "SCL-90",
+      "item_id": "SCL-90_05",
+      "dimension": 4,
+      "dimension_label": "Activity & interest deficits",
+      "response_scores": {
+        "Not at all": 0.0,
+        "A little bit": 1.0,
+        "Moderately": 2.0,
+        "Quite a bit": 3.0,
+        "Extremely": 4.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.532
+    },
+    {
+      "construct": "depression",
+      "questionnaire": "SCL-90",
+      "item_id": "SCL-90_14",
+      "dimension": 3,
+      "dimension_label": "Somatic & vegetative symptoms",
+      "response_scores": {
+        "Not at all": 0.0,
+        "A little bit": 1.0,
+        "Moderately": 2.0,
+        "Quite a bit": 3.0,
+        "Extremely": 4.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.437
+    },
+    {
+      "construct": "depression",
+      "questionnaire": "SCL-90",
+      "item_id": "SCL-90_20",
+      "dimension": 1,
+      "dimension_label": "Mood & affective symptoms",
+      "response_scores": {
+        "Not at all": 0.0,
+        "A little bit": 1.0,
+        "Moderately": 2.0,
+        "Quite a bit": 3.0,
+        "Extremely": 4.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.637
+    },
+    {
+      "construct": "depression",
+      "questionnaire": "SCL-90",
+      "item_id": "SCL-90_22",
+      "dimension": 5,
+      "dimension_label": "Anxiety & distress",
+      "response_scores": {
+        "Not at all": 0.0,
+        "A little bit": 1.0,
+        "Moderately": 2.0,
+        "Quite a bit": 3.0,
+        "Extremely": 4.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.384
+    },
+    {
+      "construct": "depression",
+      "questionnaire": "SCL-90",
+      "item_id": "SCL-90_26",
+      "dimension": 2,
+      "dimension_label": "Cognitive & self-perception",
+      "response_scores": {
+        "Not at all": 0.0,
+        "A little bit": 1.0,
+        "Moderately": 2.0,
+        "Quite a bit": 3.0,
+        "Extremely": 4.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.805
+    },
+    {
+      "construct": "depression",
+      "questionnaire": "SCL-90",
+      "item_id": "SCL-90_29",
+      "dimension": 1,
+      "dimension_label": "Mood & affective symptoms",
+      "response_scores": {
+        "Not at all": 0.0,
+        "A little bit": 1.0,
+        "Moderately": 2.0,
+        "Quite a bit": 3.0,
+        "Extremely": 4.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.574
+    },
+    {
+      "construct": "depression",
+      "questionnaire": "SCL-90",
+      "item_id": "SCL-90_30",
+      "dimension": 1,
+      "dimension_label": "Mood & affective symptoms",
+      "response_scores": {
+        "Not at all": 0.0,
+        "A little bit": 1.0,
+        "Moderately": 2.0,
+        "Quite a bit": 3.0,
+        "Extremely": 4.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 1.0
+    },
+    {
+      "construct": "depression",
+      "questionnaire": "SCL-90",
+      "item_id": "SCL-90_31",
+      "dimension": 5,
+      "dimension_label": "Anxiety & distress",
+      "response_scores": {
+        "Not at all": 0.0,
+        "A little bit": 1.0,
+        "Moderately": 2.0,
+        "Quite a bit": 3.0,
+        "Extremely": 4.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.584
+    },
+    {
+      "construct": "depression",
+      "questionnaire": "SCL-90",
+      "item_id": "SCL-90_32",
+      "dimension": 4,
+      "dimension_label": "Activity & interest deficits",
+      "response_scores": {
+        "Not at all": 0.0,
+        "A little bit": 1.0,
+        "Moderately": 2.0,
+        "Quite a bit": 3.0,
+        "Extremely": 4.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.9
+    },
+    {
+      "construct": "depression",
+      "questionnaire": "SCL-90",
+      "item_id": "SCL-90_54",
+      "dimension": 2,
+      "dimension_label": "Cognitive & self-perception",
+      "response_scores": {
+        "Not at all": 0.0,
+        "A little bit": 1.0,
+        "Moderately": 2.0,
+        "Quite a bit": 3.0,
+        "Extremely": 4.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.663
+    },
+    {
+      "construct": "depression",
+      "questionnaire": "SCL-90",
+      "item_id": "SCL-90_71",
+      "dimension": 4,
+      "dimension_label": "Activity & interest deficits",
+      "response_scores": {
+        "Not at all": 0.0,
+        "A little bit": 1.0,
+        "Moderately": 2.0,
+        "Quite a bit": 3.0,
+        "Extremely": 4.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.395
+    },
+    {
+      "construct": "depression",
+      "questionnaire": "SCL-90",
+      "item_id": "SCL-90_79",
+      "dimension": 2,
+      "dimension_label": "Cognitive & self-perception",
+      "response_scores": {
+        "Not at all": 0.0,
+        "A little bit": 1.0,
+        "Moderately": 2.0,
+        "Quite a bit": 3.0,
+        "Extremely": 4.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.811
+    },
+    {
+      "construct": "sleep",
+      "questionnaire": "SDQ",
+      "item_id": "SDQ_01",
+      "dimension": 2,
+      "dimension_label": "Nocturnal sleep disturbances",
+      "response_scores": {
+        "Never": 1.0,
+        "Rarely": 2.0,
+        "Occassionally": 3.0,
+        "Most Nights/Days": 4.0,
+        "Always": 5.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.857
+    },
+    {
+      "construct": "sleep",
+      "questionnaire": "SDQ",
+      "item_id": "SDQ_02",
+      "dimension": 2,
+      "dimension_label": "Nocturnal sleep disturbances",
+      "response_scores": {
+        "Never": 1.0,
+        "Rarely": 2.0,
+        "Occassionally": 3.0,
+        "Most Nights/Days": 4.0,
+        "Always": 5.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 1.0
+    },
+    {
+      "construct": "sleep",
+      "questionnaire": "SDQ",
+      "item_id": "SDQ_03",
+      "dimension": 2,
+      "dimension_label": "Nocturnal sleep disturbances",
+      "response_scores": {
+        "Never": 1.0,
+        "Rarely": 2.0,
+        "Occassionally": 3.0,
+        "Most Nights/Days": 4.0,
+        "Always": 5.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.736
+    },
+    {
+      "construct": "sleep",
+      "questionnaire": "SDQ",
+      "item_id": "SDQ_04",
+      "dimension": 2,
+      "dimension_label": "Nocturnal sleep disturbances",
+      "response_scores": {
+        "Never": 1.0,
+        "Rarely": 2.0,
+        "Occassionally": 3.0,
+        "Most Nights/Days": 4.0,
+        "Always": 5.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.637
+    },
+    {
+      "construct": "sleep",
+      "questionnaire": "SDQ",
+      "item_id": "SDQ_05",
+      "dimension": 2,
+      "dimension_label": "Nocturnal sleep disturbances",
+      "response_scores": {
+        "Never": 1.0,
+        "Rarely": 2.0,
+        "Occassionally": 3.0,
+        "Most Nights/Days": 4.0,
+        "Always": 5.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.462
+    },
+    {
+      "construct": "sleep",
+      "questionnaire": "SDQ",
+      "item_id": "SDQ_11",
+      "dimension": 2,
+      "dimension_label": "Nocturnal sleep disturbances",
+      "response_scores": {
+        "Never": 1.0,
+        "Rarely": 2.0,
+        "Occassionally": 3.0,
+        "Most Nights/Days": 4.0,
+        "Always": 5.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.462
+    },
+    {
+      "construct": "sleep",
+      "questionnaire": "SDQ",
+      "item_id": "SDQ_12",
+      "dimension": 2,
+      "dimension_label": "Nocturnal sleep disturbances",
+      "response_scores": {
+        "Never": 1.0,
+        "Rarely": 2.0,
+        "Occassionally": 3.0,
+        "Most Nights/Days": 4.0,
+        "Always": 5.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.615
+    },
+    {
+      "construct": "sleep",
+      "questionnaire": "SDQ",
+      "item_id": "SDQ_13",
+      "dimension": 3,
+      "dimension_label": "REM sleep behavior and dreaming",
+      "response_scores": {
+        "Never": 1.0,
+        "Rarely": 2.0,
+        "Occassionally": 3.0,
+        "Most Nights/Days": 4.0,
+        "Always": 5.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 0.637
+    },
+    {
+      "construct": "sleep",
+      "questionnaire": "SDQ",
+      "item_id": "SDQ_14",
+      "dimension": 4,
+      "dimension_label": "Sleep-disordered breathing",
+      "response_scores": {
+        "Never": 1.0,
+        "Rarely": 2.0,
+        "Occassionally": 3.0,
+        "Most Nights/Days": 4.0,
+        "Always": 5.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 1.0
+    },
+    {
+      "construct": "sleep",
+      "questionnaire": "SDQ",
+      "item_id": "SDQ_15",
+      "dimension": 4,
+      "dimension_label": "Sleep-disordered breathing",
+      "response_scores": {
+        "Never": 1.0,
+        "Rarely": 2.0,
+        "Occassionally": 3.0,
+        "Most Nights/Days": 4.0,
+        "Always": 5.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 1.0
+    },
+    {
+      "construct": "sleep",
+      "questionnaire": "SDQ",
+      "item_id": "SDQ_16",
+      "dimension": 1,
+      "dimension_label": "Daytime sleepiness and alertness",
+      "response_scores": {
+        "Never": 1.0,
+        "Rarely": 2.0,
+        "Occassionally": 3.0,
+        "Most Nights/Days": 4.0,
+        "Always": 5.0
+      },
+      "source": "inventory",
+      "mapping_confidence": 1.0
+    }
+  ],
+  "cdf_reference": "own_local_sample"
+}

@@ -1,0 +1,176 @@
+[
+  {
+    "record": 24,
+    "item_id": "IDS_03",
+    "before": "[\"Most of the time, I awaken no more than 30 minutes before I need to get up.\", \"More than half the time, I awaken more than 30 minutes before I need to get up.\", \"I almost always awaken at least I hour or so before I need to, but I go back to sleep eventually.\", \"I awaken at least I hour before I need to, and can’t go back to sleep.\"   ",
+    "after": "[\"Most of the time, I awaken no more than 30 minutes before I need to get up.\", \"More than half the time, I awaken more than 30 minutes before I need to get up.\", \"I almost always awaken at least I hour or so before I need to, but I go back to sleep eventually.\", \"I awaken at least I hour before I need to, and can’t go back to sleep.\"]"
+  },
+  {
+    "record": 39,
+    "item_id": "IDS_18",
+    "before": "[\"I do not think of suicide or death.\", \"I feel that life is empty or wonder if it’s worth living.\", \"I think of suicide or death several times a week for several minutes.\", \"I think of suicide or death several times a day in some detail, or I have made specific\r\nplans for suicide or actually tried to take my life.\"]",
+    "after": "[\"I do not think of suicide or death.\", \"I feel that life is empty or wonder if it’s worth living.\", \"I think of suicide or death several times a week for several minutes.\", \"I think of suicide or death several times a day in some detail, or I have made specific  plans for suicide or actually tried to take my life.\"]"
+  },
+  {
+    "record": 108,
+    "item_id": "PANAS_01",
+    "before": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", Quite a bit\", \"Extremely\"]",
+    "after": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", \"Quite a bit\", \"Extremely\"]"
+  },
+  {
+    "record": 109,
+    "item_id": "PANAS_02",
+    "before": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", Quite a bit\", \"Extremely\"]",
+    "after": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", \"Quite a bit\", \"Extremely\"]"
+  },
+  {
+    "record": 110,
+    "item_id": "PANAS_03",
+    "before": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", Quite a bit\", \"Extremely\"]",
+    "after": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", \"Quite a bit\", \"Extremely\"]"
+  },
+  {
+    "record": 111,
+    "item_id": "PANAS_04",
+    "before": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", Quite a bit\", \"Extremely\"]",
+    "after": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", \"Quite a bit\", \"Extremely\"]"
+  },
+  {
+    "record": 112,
+    "item_id": "PANAS_05",
+    "before": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", Quite a bit\", \"Extremely\"]",
+    "after": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", \"Quite a bit\", \"Extremely\"]"
+  },
+  {
+    "record": 113,
+    "item_id": "PANAS_06",
+    "before": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", Quite a bit\", \"Extremely\"]",
+    "after": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", \"Quite a bit\", \"Extremely\"]"
+  },
+  {
+    "record": 114,
+    "item_id": "PANAS_07",
+    "before": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", Quite a bit\", \"Extremely\"]",
+    "after": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", \"Quite a bit\", \"Extremely\"]"
+  },
+  {
+    "record": 115,
+    "item_id": "PANAS_08",
+    "before": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", Quite a bit\", \"Extremely\"]",
+    "after": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", \"Quite a bit\", \"Extremely\"]"
+  },
+  {
+    "record": 116,
+    "item_id": "PANAS_09",
+    "before": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", Quite a bit\", \"Extremely\"]",
+    "after": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", \"Quite a bit\", \"Extremely\"]"
+  },
+  {
+    "record": 117,
+    "item_id": "PANAS_10",
+    "before": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", Quite a bit\", \"Extremely\"]",
+    "after": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", \"Quite a bit\", \"Extremely\"]"
+  },
+  {
+    "record": 118,
+    "item_id": "PANAS_11",
+    "before": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", Quite a bit\", \"Extremely\"]",
+    "after": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", \"Quite a bit\", \"Extremely\"]"
+  },
+  {
+    "record": 119,
+    "item_id": "PANAS_12",
+    "before": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", Quite a bit\", \"Extremely\"]",
+    "after": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", \"Quite a bit\", \"Extremely\"]"
+  },
+  {
+    "record": 120,
+    "item_id": "PANAS_13",
+    "before": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", Quite a bit\", \"Extremely\"]",
+    "after": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", \"Quite a bit\", \"Extremely\"]"
+  },
+  {
+    "record": 121,
+    "item_id": "PANAS_14",
+    "before": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", Quite a bit\", \"Extremely\"]",
+    "after": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", \"Quite a bit\", \"Extremely\"]"
+  },
+  {
+    "record": 122,
+    "item_id": "PANAS_15",
+    "before": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", Quite a bit\", \"Extremely\"]",
+    "after": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", \"Quite a bit\", \"Extremely\"]"
+  },
+  {
+    "record": 123,
+    "item_id": "PANAS_16",
+    "before": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", Quite a bit\", \"Extremely\"]",
+    "after": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", \"Quite a bit\", \"Extremely\"]"
+  },
+  {
+    "record": 124,
+    "item_id": "PANAS_17",
+    "before": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", Quite a bit\", \"Extremely\"]",
+    "after": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", \"Quite a bit\", \"Extremely\"]"
+  },
+  {
+    "record": 125,
+    "item_id": "PANAS_18",
+    "before": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", Quite a bit\", \"Extremely\"]",
+    "after": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", \"Quite a bit\", \"Extremely\"]"
+  },
+  {
+    "record": 126,
+    "item_id": "PANAS_19",
+    "before": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", Quite a bit\", \"Extremely\"]",
+    "after": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", \"Quite a bit\", \"Extremely\"]"
+  },
+  {
+    "record": 127,
+    "item_id": "PANAS_20",
+    "before": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", Quite a bit\", \"Extremely\"]",
+    "after": "[\"Very slightly or not at all\", \"A little\", \"Moderately\", \"Quite a bit\", \"Extremely\"]"
+  },
+  {
+    "record": 197,
+    "item_id": "DSM-5-TR_IV_06",
+    "before": "[\"None/Not at all\", \"Slight/\"Rare, less than a day or two\", \"Mild/Several days\", \"Moderate/More than half the days\", \"Severe/Nearly every day\"]",
+    "after": "[\"None/Not at all\", \"Slight/Rare, less than a day or two\", \"Mild/Several days\", \"Moderate/More than half the days\", \"Severe/Nearly every day\"]"
+  },
+  {
+    "record": 198,
+    "item_id": "DSM-5-TR_IV_07",
+    "before": "[\"None/Not at all\", \"Slight/\"Rare, less than a day or two\", \"Mild/Several days\", \"Moderate/More than half the days\", \"Severe/Nearly every day\"]",
+    "after": "[\"None/Not at all\", \"Slight/Rare, less than a day or two\", \"Mild/Several days\", \"Moderate/More than half the days\", \"Severe/Nearly every day\"]"
+  },
+  {
+    "record": 199,
+    "item_id": "DSM-5-TR_IV_08",
+    "before": "[\"None/Not at all\", \"Slight/\"Rare, less than a day or two\", \"Mild/Several days\", \"Moderate/More than half the days\", \"Severe/Nearly every day\"]",
+    "after": "[\"None/Not at all\", \"Slight/Rare, less than a day or two\", \"Mild/Several days\", \"Moderate/More than half the days\", \"Severe/Nearly every day\"]"
+  },
+  {
+    "record": 209,
+    "item_id": "BES_01",
+    "before": "[\"I don’t feel self-conscious about my weight or body size when I’m with others.\", \"I feel concerned about how I look to others, but it normally does not make me feel disappointed with myself.\", \"I do get self-conscious about my appearance and weight which makes me feel disappointed in myself.\", \"I feel very self-conscious about my weight and frequently, I feel intense shame and disgust for myself. I try to avoid social contacts because of my self consciousness.\"",
+    "after": "[\"I don’t feel self-conscious about my weight or body size when I’m with others.\", \"I feel concerned about how I look to others, but it normally does not make me feel disappointed with myself.\", \"I do get self-conscious about my appearance and weight which makes me feel disappointed in myself.\", \"I feel very self-conscious about my weight and frequently, I feel intense shame and disgust for myself. I try to avoid social contacts because of my self consciousness.\"]"
+  },
+  {
+    "record": 210,
+    "item_id": "BES_02",
+    "before": "[\"I don’t have any difficulty eating slowly in the proper manner.\", \"Although I seem to “gobble down” foods, I don’t end up feeling stuffed because of eating too much.\", \"At times, I tend to eat quickly and then, I feel uncomfortably full afterwards.\", \"I have the habit of bolting down my food, without really chewing it. When this happens I usually feel uncomfortably stuffed because I’ve eaten too much.\"",
+    "after": "[\"I don’t have any difficulty eating slowly in the proper manner.\", \"Although I seem to “gobble down” foods, I don’t end up feeling stuffed because of eating too much.\", \"At times, I tend to eat quickly and then, I feel uncomfortably full afterwards.\", \"I have the habit of bolting down my food, without really chewing it. When this happens I usually feel uncomfortably stuffed because I’ve eaten too much.\"]"
+  },
+  {
+    "record": 340,
+    "item_id": "DSM-5-TR_VII_12",
+    "before": "[\"None/Not at all\", \"Slight/\"Rare, less than a day or two\", \"Mild/Several days\", \"Moderate/More than half the days\", \"Severe/Nearly every day\"]",
+    "after": "[\"None/Not at all\", \"Slight/Rare, less than a day or two\", \"Mild/Several days\", \"Moderate/More than half the days\", \"Severe/Nearly every day\"]"
+  },
+  {
+    "record": 341,
+    "item_id": "DSM-5-TR_VII_13",
+    "before": "[\"None/Not at all\", \"Slight/\"Rare, less than a day or two\", \"Mild/Several days\", \"Moderate/More than half the days\", \"Severe/Nearly every day\"]",
+    "after": "[\"None/Not at all\", \"Slight/Rare, less than a day or two\", \"Mild/Several days\", \"Moderate/More than half the days\", \"Severe/Nearly every day\"]"
+  }
+]

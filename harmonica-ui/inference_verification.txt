@@ -1,0 +1,25 @@
+Actual new-item inference passed.
+  item_id                                    item_text dimension    dimension_label confidence            probability_distribution construct   questionnaire source
+UI_NEW_01 I worry that something terrible will happen.         2 Cognitive symptoms      0.807 {"-1": 0.1, "1": 0.093, "2": 0.807}   anxiety UI verification  model
+[HarmoniCA] Running model for 1 item(s) of 'UI verification' (anxiety)...
+[HarmoniCA] Downloading 'anxiety' model from julia-pfarr/HarmoniCA_anxiety ...
+[HarmoniCA] 'anxiety' model downloaded.
+[HarmoniCA] Inventory updated: +1 items for 'UI verification'.
+
+
+Fetching 14 files:   0%|          | 0/14 [00:00<?, ?it/s]Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+Fetching 14 files:   7%|▋         | 1/14 [00:00<00:04,  2.91it/s]
+Fetching 14 files:  14%|█▍        | 2/14 [00:00<00:03,  3.03it/s]
+Fetching 14 files:  21%|██▏       | 3/14 [00:06<00:29,  2.71s/it]
+Fetching 14 files:  43%|████▎     | 6/14 [00:06<00:07,  1.05it/s]
+Fetching 14 files:  57%|█████▋    | 8/14 [00:06<00:03,  1.65it/s]
+Fetching 14 files:  71%|███████▏  | 10/14 [00:06<00:01,  2.40it/s]
+Fetching 14 files:  79%|███████▊  | 11/14 [00:19<00:01,  2.40it/s]
+Fetching 14 files:  86%|████████▌ | 12/14 [00:24<00:06,  3.21s/it]
+Fetching 14 files:  93%|█████████▎| 13/14 [00:24<00:02,  2.63s/it]
+Fetching 14 files: 100%|██████████| 14/14 [00:33<00:00,  4.08s/it]
+Fetching 14 files: 100%|██████████| 14/14 [00:33<00:00,  2.40s/it]
+
+Loading weights:   0%|          | 0/195 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 195/195 [00:00<00:00, 5140.05it/s]

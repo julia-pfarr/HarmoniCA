@@ -56,6 +56,8 @@ def main():
     parser.add_argument('--inventory', default=str(DEFAULT_INVENTORY))
     parser.add_argument('--device', default=None, choices=['cpu', 'cuda'],
                         help='Device for the fine-tuned models (default: cuda if available, else cpu)')
+    parser.add_argument('--scoring-bundle', metavar='ZIP',
+                        help='Export an offline scoring ZIP; items CSV must also contain answer_options and scoring lists')
 
     args = parser.parse_args()
 
@@ -65,6 +67,10 @@ def main():
     missing = required - set(items_df.columns)
     if missing:
         raise ValueError(f"Items CSV is missing required columns: {missing}")
+    if args.scoring_bundle:
+        scoring_missing = {'answer_options', 'scoring'} - set(items_df.columns)
+        if scoring_missing:
+            raise ValueError(f"Scoring definitions missing columns: {sorted(scoring_missing)}")
 
     # Run per (construct, questionnaire) group
     hca = HarmoniCA(models_dir=args.models_dir, inventory_path=args.inventory, device=args.device)
@@ -95,6 +101,11 @@ def main():
 
     out_df.to_csv(output_path, index=False)
     print(f"\nSaved to {output_path}")
+    if args.scoring_bundle:
+        from harmonica.pipeline import generate_pipeline, save_bundle
+        pipeline = generate_pipeline(out_df.to_dict('records'), items_df.to_dict('records'))
+        save_bundle(pipeline, args.scoring_bundle)
+        print(f"Saved offline scoring bundle to {args.scoring_bundle}")
 
 
 

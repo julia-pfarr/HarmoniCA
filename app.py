@@ -11,9 +11,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / 'src'))
 
-from harmonica.app import build_app
+from harmonica.app import CSS, THEME, build_app
 
 demo = build_app()
 
 if __name__ == '__main__':
-    demo.launch()
+    demo.launch(theme=THEME, css=CSS)
