@@ -1,4 +1,4 @@
-construct,questionnaire,item_id,item_text
-anxiety,Demo questionnaire,DEMO_01,I worry that something terrible will happen.
-anxiety,Demo questionnaire,DEMO_02,My heart races when I feel afraid.
-anxiety,Demo questionnaire,DEMO_03,I find it hard to stop worrying about the future.
+construct,questionnaire,item_id,item_text,answer_options,scoring
+anxiety,Demo questionnaire,DEMO_01,I worry that something terrible will happen.,"[0, 1, 2, 3]","[0, 1, 2, 3]"
+anxiety,Demo questionnaire,DEMO_02,My heart races when I feel afraid.,"[0, 1, 2, 3]","[0, 1, 2, 3]"
+anxiety,Demo questionnaire,DEMO_03,I find it hard to stop worrying about the future.,"[0, 1, 2, 3]","[0, 1, 2, 3]"

@@ -1,6 +1,6 @@
-construct,questionnaire,item_id,item_text
-anxiety,Demo questionnaire A,DEMO_01,I worry that something terrible will happen.
-anxiety,Demo questionnaire A,DEMO_02,My heart races when I feel afraid.
-anxiety,Demo questionnaire A,DEMO_03,I find it hard to stop worrying about the future.
-anxiety,Demo questionnaire B,DEMO-B_01,I feel tense and on edge most of the day.
-anxiety,Demo questionnaire B,DEMO-B_02,I often cannot relax even when nothing is wrong.
+construct,questionnaire,item_id,item_text,answer_options,scoring
+anxiety,Demo questionnaire A,DEMO_01,I worry that something terrible will happen.,"[0, 1, 2, 3]","[0, 1, 2, 3]"
+anxiety,Demo questionnaire A,DEMO_02,My heart races when I feel afraid.,"[0, 1, 2, 3]","[0, 1, 2, 3]"
+anxiety,Demo questionnaire A,DEMO_03,I find it hard to stop worrying about the future.,"[0, 1, 2, 3]","[0, 1, 2, 3]"
+anxiety,Demo questionnaire B,DEMO-B_01,I feel tense and on edge most of the day.,"[0, 1, 2, 3]","[0, 1, 2, 3]"
+anxiety,Demo questionnaire B,DEMO-B_02,I often cannot relax even when nothing is wrong.,"[0, 1, 2, 3]","[0, 1, 2, 3]"

@@ -8,6 +8,8 @@ from pathlib import Path
 import pandas as pd
 
 COLUMNS = ['construct', 'questionnaire', 'item_id', 'item_text']
+# Files and manual entries carry two more fields. Every uploaded item needs all six.
+UPLOAD_COLUMNS = COLUMNS + ['answer_options', 'scoring']
 SEPARATORS = [',', ';', '\t']
 
 
@@ -36,7 +38,12 @@ def detect_separator(data):
     return best if counts[best] else ','
 
 
-def parse_items(data):
+def parse_items(data, columns=COLUMNS):
+    """Read and validate item rows from CSV bytes.
+
+    `columns` lists the required columns. Uploaded files use UPLOAD_COLUMNS (all six),
+    items taken from the reference inventory only have the first four.
+    """
     try:
         df = pd.read_csv(io.BytesIO(data), dtype=str, keep_default_na=False, encoding='utf-8-sig')
     except Exception as exc:
@@ -44,11 +51,11 @@ def parse_items(data):
     df.columns = df.columns.str.strip()
     if df.columns.duplicated().any():
         raise ValueError('Column names must be unique.')
-    missing = set(COLUMNS) - set(df.columns)
+    missing = [col for col in columns if col not in df.columns]
     if missing:
-        raise ValueError('Missing columns: ' + ', '.join(sorted(missing)))
-    df = df[COLUMNS].copy()
-    for col in COLUMNS:
+        raise ValueError('Missing columns: ' + ', '.join(missing))
+    df = df[columns].copy()
+    for col in columns:
         df[col] = df[col].str.strip()
     df['construct'] = df['construct'].str.lower()
     if df.empty:
@@ -61,6 +68,30 @@ def parse_items(data):
     if df.duplicated(['construct', 'questionnaire', 'item_id']).any():
         raise ValueError('Duplicate item IDs within the same questionnaire and construct. Resolve them before running.')
     return df
+
+
+ITEM_KEY = ['construct', 'questionnaire', 'item_id']
+
+
+def decisions_from_review(review):
+    """Turn the possible duplicates table into {(construct, questionnaire, item_id): same_item?}."""
+    decisions = {}
+    if review is not None and len(review) > 0:
+        for row in review.to_dict('records'):
+            decisions[tuple(str(row[col]) for col in ITEM_KEY)] = bool(row['same_item?'])
+    return decisions
+
+
+def apply_reuse_decisions(items, decisions):
+    """Add the reuse_match column that inventory_check and the engine worker read.
+
+    An item with no recorded decision is reused (same_item? is checked by default), the
+    same default the Harmonize and Data Harmonizer tabs use.
+    """
+    out = items.copy()
+    out['reuse_match'] = [decisions.get(tuple(str(row[col]) for col in ITEM_KEY), True)
+                          for row in out.to_dict('records')]
+    return out
 
 
 def _normalize(text):
