@@ -41,7 +41,7 @@ st.markdown('''<style>
 /* Tabs styled like the header navigation */
 [data-baseweb="tab-list"] {border-bottom:1px solid #E5E7EB;gap:24px;}
 [data-baseweb="tab"] {font-size:15px;color:#4B5563;padding-left:2px;padding-right:2px;}
-[data-baseweb="tab"][aria-selected="true"] {color:#A33B5C;}
+[data-baseweb="tab"]:is([aria-selected="true"], [data-selected]) {color:#A33B5C;}
 /* Four-step workflow indicator (ported from the Gradio stepper) */
 .hca-stepper {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:20px 24px;margin:4px 0 18px;
               border:1px solid #E5E7EB;border-radius:10px;background:#FFFFFF;overflow:hidden;}
@@ -123,27 +123,6 @@ st.markdown('''<style>
 .hca-badge--queued {color:#A33B5C;background:#F9ECEF;}
 .hca-badge--off {color:#4B5563;background:#F3F4F6;}
 </style>''', unsafe_allow_html=True)
-
-
-WORKFLOW_STEPS = ('Upload', 'Inventory check', 'Harmonization', 'Results')
-
-
-def render_stepper(current_step):
-    """Four-step workflow indicator from the UX design (same markup as the Gradio app)."""
-    current_step = max(1, min(current_step, len(WORKFLOW_STEPS)))
-    parts = ['<div class="hca-stepper" aria-label="Harmonization progress">']
-    for index, label in enumerate(WORKFLOW_STEPS, start=1):
-        if index < current_step:
-            css_class, marker, status = 'is-complete', '&#10003;', 'Complete'
-        elif index == current_step:
-            css_class, marker, status = 'is-current', str(index), 'Current step'
-        else:
-            css_class, marker, status = 'is-upcoming', str(index), 'Upcoming'
-        parts.append(f'<div class="hca-step {css_class}"><div class="hca-step-circle">{marker}</div>'
-                     f'<div class="hca-step-copy"><div class="hca-step-title">{label}</div>'
-                     f'<div class="hca-step-status">{status}</div></div></div>')
-    parts.append('</div>')
-    return ''.join(parts)
 
 
 # HTML pieces for the Check & harmonize tab, following the Figma step 2/3/4 screens.
@@ -277,9 +256,6 @@ st.markdown('''
 </div>
 <div class="hca-eyebrow">Research workspace</div>
 ''', unsafe_allow_html=True)
-# The workflow stepper sits under the header on every tab; the Check & harmonize
-# code below fills it with the current step.
-stepper_slot = st.empty()
 engine = importlib.util.find_spec('harmonica') is not None
 with st.sidebar:
     st.subheader('Analysis settings')
@@ -298,13 +274,94 @@ with st.sidebar:
 
 items = None
 source_name = 'example_items.csv'
-# The tabs track their state under 'main_tab', so buttons can switch tabs by setting it.
-prepare, check, harmonize, explore, review, models = st.tabs(['Prepare', 'Inventory check', 'Harmonization', 'Visual dashboard', 'Item inspector', 'Models & dimensions'],
-                                                             key='main_tab', on_change='rerun')
+# The workflow bar is the main navigation. Detailed result views live underneath Results.
+RESULT_VIEWS = ['Visual dashboard', 'Item inspector', 'Models & dimensions']
+WORKFLOW_VIEWS = ['Upload', 'Inventory check', 'Harmonization', 'Results']
 
 
 def go_to_tab(label):
-    st.session_state.main_tab = label
+    if label == 'Prepare':
+        st.session_state.main_tab = 'Upload'
+    elif label in RESULT_VIEWS:
+        st.session_state.main_tab = 'Results'
+        st.session_state.results_tab = label
+    else:
+        st.session_state.main_tab = label
+
+
+stored_tab = st.session_state.get('main_tab', 'Upload')
+if stored_tab == 'Prepare':
+    stored_tab = 'Upload'
+elif stored_tab in RESULT_VIEWS:
+    st.session_state.results_tab = stored_tab
+    stored_tab = 'Results'
+if stored_tab not in WORKFLOW_VIEWS:
+    stored_tab = 'Upload'
+st.session_state.main_tab = stored_tab
+
+# Support both older BaseWeb tabs and newer accessible Streamlit tabs.
+st.markdown("""<style>
+[data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) {
+    display:flex; gap:0; background:#FFFFFF; border:1px solid #E5E7EB;
+    border-radius:10px; padding:20px 24px; min-height:110px;
+    width:100%; box-sizing:border-box;
+}
+[data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"]) {
+    flex:1 1 0!important; width:auto!important; height:64px; padding:0 12px 14px 0; justify-content:flex-start;
+    color:#1F2430; position:relative; border-radius:6px; overflow:visible;
+    gap:12px; white-space:nowrap;
+}
+[data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"]) p {
+    font-size:17px; font-weight:650; background:white; padding-right:14px;
+    position:relative; z-index:2;
+}
+[data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"])::before {
+    display:grid; place-items:center; width:40px; height:40px; flex:0 0 40px;
+    border-radius:50%; background:#EEF1F4; color:#9AA2AD;
+    font-size:13px; font-weight:700; position:relative; z-index:2;
+}
+[data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"]):nth-child(1)::before {content:"1";}
+[data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"]):nth-child(2)::before {content:"2";}
+[data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"]):nth-child(3)::before {content:"3";}
+[data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"]):nth-child(4)::before {content:"4";}
+[data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"])::after {
+    content:""; position:absolute; left:52px; right:12px; top:24px;
+    height:2px; background:#EDF0F3; z-index:0;
+}
+[data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"]):nth-child(4)::after {display:none;}
+[data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"]):is([aria-selected="true"], [data-selected]) {color:#A33B5C;}
+[data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"]):is([aria-selected="true"], [data-selected])::before {background:#A33B5C; color:white;}
+[data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"]):hover p {color:#A33B5C;}
+[data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"]):focus-visible {outline:2px solid #A33B5C; outline-offset:2px;}
+[data-testid="stTabs"] [data-baseweb="tab-highlight"],
+[data-testid="stTabs"] [data-baseweb="tab-border"] {display:none;}
+[data-testid="stTabs"] [data-testid="stTab"] > span {display:none;}
+/* Nested Results controls are ordinary tabs, outside the framed bar. */
+[data-testid="stTabs"] [data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) {
+    background:transparent; border:0; border-bottom:1px solid #E5E7EB;
+    border-radius:0; padding:0; min-height:0; gap:24px;
+}
+[data-testid="stTabs"] [data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"]) {
+    flex:0 0 auto!important; height:42px; padding:0 2px; background:transparent;
+}
+[data-testid="stTabs"] [data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"]) p {
+    font-size:15px; font-weight:400; background:transparent; padding-right:0;
+}
+[data-testid="stTabs"] [data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"])::before,
+[data-testid="stTabs"] [data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"])::after {content:none; display:none;}
+[data-testid="stTabs"] [data-testid="stTabs"] [data-baseweb="tab-highlight"],
+[data-testid="stTabs"] [data-testid="stTabs"] [data-baseweb="tab-border"] {display:block;}
+[data-testid="stTabs"] [data-testid="stTabs"] [data-testid="stTab"] > span {display:block;}
+@media (max-width:640px) {
+    [data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) {padding:12px; overflow-x:auto;}
+    [data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"]) {flex:0 0 auto; min-width:155px;}
+    [data-testid="stTabs"] [data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) {padding:0;}
+}
+</style>""", unsafe_allow_html=True)
+prepare, check, harmonize, results = st.tabs(WORKFLOW_VIEWS, key='main_tab', on_change='rerun')
+with results:
+    explore, review, models = st.tabs(RESULT_VIEWS, key='results_tab', on_change='rerun')
+
 with prepare:
     left, right = st.columns([3,2])
     with left:
@@ -442,8 +499,6 @@ if job is not None and job['status'] == 'done' and not job.get('collected'):
 has_result = 'result' in st.session_state
 # Results are kept when the selection changes; they're only replaced by a new run.
 stale = has_result and st.session_state.get('result_fingerprint') != fingerprint
-stepper_slot.markdown(render_stepper(1 if selected.empty else 3 if running else 4 if has_result and not stale else 2),
-                      unsafe_allow_html=True)
 
 
 def stale_notice():
@@ -547,7 +602,7 @@ def run_view(job, live):
 
 with check:
     if selected.empty:
-        st.info('Prepare your items in the **Prepare** tab first.')
+        st.info('Prepare your items in the **Upload** tab first.')
     else:
         st.markdown(page_intro_html('Step 2 of 4', 'Check the inventory',
                                     'Existing items can be reused. New items will be sent to the model for harmonization.'),
@@ -626,7 +681,7 @@ with harmonize:
         note.markdown('<p class="hca-run-note">Results are ready</p>', unsafe_allow_html=True)
         action.button('View results →', type='primary', width='stretch', on_click=go_to_tab, args=('Visual dashboard',))
     elif selected.empty:
-        st.info('Prepare your items in the **Prepare** tab first.')
+        st.info('Prepare your items in the **Upload** tab first.')
     else:
         st.markdown(page_intro_html('Step 3 of 4', 'Harmonizing your items',
                                     'Start a run from the Inventory check tab. Progress will appear here.'),
