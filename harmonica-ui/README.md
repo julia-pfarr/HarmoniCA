@@ -17,7 +17,9 @@ If the engine is missing, follow https://github.com/julia-pfarr/HarmoniCA to ins
 
 ## First real run, without model downloads
 
-Select **Explore reference inventory**. Select a construct and questionnaires, then **Run HarmoniCA**. The actual engine retrieves its stored reference assignments. Open **Visual dashboard**, then **Item inspector**. To predict assignments for new wording, upload CSV/Excel or use Try example items; this requires model downloads. Force model rerun skips the stored assignments.
+In **Prepare**, choose **Explore reference inventory** to inspect stored assignments, **Upload files** to map CSV/Excel columns, or **Enter items manually** to add questionnaire items one at a time. Manual entries require construct, questionnaire, item ID, wording, answer options, and scoring, then move through inventory review and results. Exact matches and confirmed duplicates are reused; only new model predictions are appended to the local `harmonized_inventory.csv`. New-item inference requires model downloads.
+
+For the existing dashboard workflow, upload CSV/Excel or choose **Explore reference inventory**, select a construct and questionnaires, then run from **Inventory check**. Open **Visual dashboard** and **Item inspector** to explore and review assignments. Force model rerun skips stored assignments.
 
 Open `dashboard_preview.html` directly in a browser for a standalone visual preview using real upstream anxiety inventory entries. This HTML is a reference-data preview, not a model-inference test.
 

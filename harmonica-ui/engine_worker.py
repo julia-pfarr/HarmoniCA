@@ -4,6 +4,7 @@ import os
 import sys
 from pathlib import Path
 import pandas as pd
+from backend import PROGRESS_PREFIX, run_items_with_progress
 
 if os.environ.get('HARMONICA_SOURCE_DIR'):
     sys.path.insert(0, os.environ['HARMONICA_SOURCE_DIR'])
@@ -23,13 +24,34 @@ rows=[]
 for (construct,questionnaire),group in items.groupby(['construct','questionnaire'],sort=False):
     # Text matches under different IDs are not silently reused and never prompt
     # on a hidden terminal; they are processed as new items.
-    result=engine.harmonize(questionnaire=questionnaire,construct=construct,items=group[['item_id','item_text']].to_dict('records'),force_rerun=force=='1',confirm_match=lambda user,reference:False)
+    original_run_model = engine._run_model
+
+    def report_progress(event):
+        print(PROGRESS_PREFIX+json.dumps(event), flush=True)
+
+    def run_model_with_item_progress(model_construct, model_items):
+        return run_items_with_progress(original_run_model, model_construct, questionnaire,
+                                       model_items, report_progress)
+
+    engine._run_model = run_model_with_item_progress
+    confirmed_ids = set()
+    if 'reuse_match' in group.columns:
+        confirmed_ids = set(group.loc[group['reuse_match'].astype(str).str.lower().isin(('true', '1', 'yes')),
+                                      'item_id'])
+    result=engine.harmonize(questionnaire=questionnaire,construct=construct,items=group[['item_id','item_text']].to_dict('records'),
+                            force_rerun=force=='1',
+                            confirm_match=lambda user,reference: user['item_id'] in confirmed_ids)
+    engine._run_model = original_run_model
     for item in result['assignments']:
         item=dict(item)
         if 'probability_distribution' in item:
             item['probability_distribution']=json.dumps(item['probability_distribution'])
         item.update(construct=construct,questionnaire=questionnaire,source=result['source'])
         rows.append(item)
-    # Progress line read by backend.run_harmonica (prefix must match PROGRESS_PREFIX there)
-    print('@@HARMONICA_PROGRESS '+json.dumps({'construct':construct,'questionnaire':questionnaire,'items':len(group)}),flush=True)
+    print(PROGRESS_PREFIX+json.dumps({
+        'construct': construct,
+        'questionnaire': questionnaire,
+        'items': 0,
+        'group_complete': True,
+    }), flush=True)
 pd.DataFrame(rows).to_csv(output,index=False)

@@ -1,12 +1,6 @@
-# HarmoniCA - redesigned Streamlit interface, kept separate from app.py.
-#
-# Run it from this folder:  python -m streamlit run app_redesign.py
-# The team's current interface is still app.py. This file shares backend.py, visuals.py, assets/ and the theme with it.
-#
-# What differs from app.py: a two-section Prepare page (upload and/or choose from the inventory, then review every item),
-# tab titles that show where the run is at, a banner while a run is in progress, and a tidier dashboard (a caption under
-# each chart title and a compact item list). It does not have app.py's multiple-file upload, inline item editing or
-# "Compare questionnaires" chart.
+# Historical prototype of the PR #23 Streamlit redesign.
+# The current interface is app.py, which incorporates the compatible Prepare, navigation, run-banner, and dashboard UX
+# while retaining multi-file upload, inline editing, questionnaire comparison, manual entry, and item-level progress.
 import hashlib
 import io
 import json

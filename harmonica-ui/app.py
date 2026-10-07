@@ -15,12 +15,13 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 from backend import COLUMNS, SEPARATORS, detect_separator, inventory_check, parse_items, run_harmonica
+from harmonize_workflow import append_model_predictions, persistent_inventory_path, render_manual_workflow
 
 CATALOG = json.loads(Path(__file__).with_name('assets').joinpath('model_catalog.json').read_text())
 if os.environ.get('HARMONICA_SOURCE_DIR'):
     sys.path.insert(0, os.environ['HARMONICA_SOURCE_DIR'])
 
-st.set_page_config(page_title='HarmoniCA | Research workspace', page_icon='🎼', layout='wide')
+st.set_page_config(page_title='HarmoniCA', page_icon='🎼', layout='wide')
 # Header and card styles from the HarmoniCA Figma template (shared with the Gradio app)
 st.markdown('''<style>
 .hca-header {display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
@@ -122,28 +123,70 @@ st.markdown('''<style>
 .hca-badge--ready {color:#2F6B57;background:#E8F3EE;}
 .hca-badge--queued {color:#A33B5C;background:#F9ECEF;}
 .hca-badge--off {color:#4B5563;background:#F3F4F6;}
+.hca-run-banner {display:flex;align-items:flex-start;gap:14px;margin:0 0 18px;padding:16px 20px;border:1px solid #F0CF8E;
+                 border-left:6px solid #E09F1F;border-radius:10px;background:#FFF6E5;}
+.hca-run-banner-icon {font-size:22px;line-height:1.2;color:#B97A0B;}
+.hca-run-banner-title {font-size:16px;font-weight:700;color:#6B4200;margin-bottom:2px;}
+.hca-run-banner p {margin:0;font-size:14px;color:#5C4306;}
+.hca-item-row {display:flex;justify-content:space-between;align-items:flex-start;gap:24px;padding:12px 0;border-top:1px solid #EEF0F3;}
+.hca-item-row:first-child {border-top:0;padding-top:4px;}
+.hca-item-main {flex:1 1 0;min-width:0;}
+.hca-item-meta {font-size:12px;color:#6B7280;}
+.hca-item-text {font-size:15px;color:#1F2430;margin-top:2px;overflow-wrap:anywhere;}
+.hca-item-side {flex:0 0 34%;display:flex;flex-direction:column;align-items:flex-end;gap:4px;text-align:right;}
+.hca-item-side .hca-pill {white-space:normal;text-align:right;}
+.hca-item-conf {font-size:12px;color:#6B7280;}
+.hca-item-conf--low {color:#A33B5C;font-weight:600;}
+@media (max-width:720px) {.hca-item-row {flex-direction:column;gap:6px;} .hca-item-side {flex:none;align-items:flex-start;text-align:left;}}
+/* Framed workflow navigation; nested Results tabs retain the standard tab style. */
+[data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) {
+    display:flex;gap:0;background:#FFFFFF;border:1px solid #E5E7EB;border-radius:10px;
+    padding:20px 24px;min-height:110px;width:100%;box-sizing:border-box;
+}
+[data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"]) {
+    flex:1 1 0!important;width:auto!important;height:64px;padding:0 12px 14px 0;
+    justify-content:flex-start;color:#1F2430;position:relative;border-radius:6px;overflow:visible;
+}
+[data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"]) p {
+    font-size:17px;font-weight:650;background:#FFFFFF;padding-right:14px;position:relative;z-index:2;
+}
+[data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"])::before {
+    display:grid;place-items:center;width:40px;height:40px;flex:0 0 40px;margin-right:12px;
+    border-radius:50%;background:#EEF1F4;color:#9AA2AD;font-size:14px;font-weight:700;z-index:1;
+}
+[data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"]):nth-child(1)::before {content:"1";}
+[data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"]):nth-child(2)::before {content:"2";}
+[data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"]):nth-child(3)::before {content:"3";}
+[data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"]):nth-child(4)::before {content:"4";}
+[data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"])::after {
+    content:"";position:absolute;left:52px;right:12px;top:24px;height:2px;background:#EDF0F3;z-index:0;
+}
+[data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"]):nth-child(4)::after {display:none;}
+[data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"]):is([aria-selected="true"], [data-selected]) {color:#A33B5C;}
+[data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"]):is([aria-selected="true"], [data-selected])::before {background:#A33B5C;color:#FFFFFF;}
+[data-testid="stTabs"] [data-baseweb="tab-highlight"], [data-testid="stTabs"] [data-baseweb="tab-border"] {display:none;}
+[data-testid="stTabs"] [data-testid="stTab"] > span {display:none;}
+[data-testid="stTabs"] [data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) {
+    display:flex;background:transparent;border:0;border-bottom:1px solid #E5E7EB;border-radius:0;
+    padding:0;min-height:0;gap:24px;
+}
+[data-testid="stTabs"] [data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"]) {
+    flex:0 0 auto!important;height:42px;padding:0 2px;background:transparent;
+}
+[data-testid="stTabs"] [data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"]) p {
+    font-size:15px;font-weight:400;background:transparent;padding-right:0;
+}
+[data-testid="stTabs"] [data-testid="stTabs"] :is([data-baseweb="tab"], [role="tab"])::before,
+[data-testid="stTabs"] [data-testid="stTabs"] :is([data-baseweb="tab"], [role="tab"])::after {content:none;display:none;}
+[data-testid="stTabs"] [data-testid="stTabs"] [data-baseweb="tab-highlight"],
+[data-testid="stTabs"] [data-testid="stTabs"] [data-baseweb="tab-border"] {display:block;}
+[data-testid="stTabs"] [data-testid="stTabs"] [data-testid="stTab"] > span {display:block;}
+@media (max-width:640px) {
+    [data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) {padding:12px;overflow-x:auto;}
+    [data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) :is([data-baseweb="tab"], [role="tab"]) {flex:0 0 auto;min-width:155px;}
+    [data-testid="stTabs"] [data-testid="stTabs"] :is([data-baseweb="tab-list"], [role="tablist"]) {padding:0;}
+}
 </style>''', unsafe_allow_html=True)
-
-
-WORKFLOW_STEPS = ('Upload', 'Inventory check', 'Harmonization', 'Results')
-
-
-def render_stepper(current_step):
-    """Four-step workflow indicator from the UX design (same markup as the Gradio app)."""
-    current_step = max(1, min(current_step, len(WORKFLOW_STEPS)))
-    parts = ['<div class="hca-stepper" aria-label="Harmonization progress">']
-    for index, label in enumerate(WORKFLOW_STEPS, start=1):
-        if index < current_step:
-            css_class, marker, status = 'is-complete', '&#10003;', 'Complete'
-        elif index == current_step:
-            css_class, marker, status = 'is-current', str(index), 'Current step'
-        else:
-            css_class, marker, status = 'is-upcoming', str(index), 'Upcoming'
-        parts.append(f'<div class="hca-step {css_class}"><div class="hca-step-circle">{marker}</div>'
-                     f'<div class="hca-step-copy"><div class="hca-step-title">{label}</div>'
-                     f'<div class="hca-step-status">{status}</div></div></div>')
-    parts.append('</div>')
-    return ''.join(parts)
 
 
 # HTML pieces for the Check & harmonize tab, following the Figma step 2/3/4 screens.
@@ -182,7 +225,7 @@ def processing_card_html(file_name, n_model, model_done, n_inventory, n_duplicat
         _check_row('done', 'Validate file and required columns', f'{n_total} items validated'),
         _check_row('done', 'Compare items with the inventory', f'{n_inventory} exact matches · {n_duplicate} possible duplicates'),
         _check_row('done' if finished else 'running', 'Process new items with the model',
-                   f'{model_done} of {n_model} items processed · {groups_done} of {n_groups} questionnaires'),
+                   f'{model_done} of {n_model} items processed'),
         _check_row('done' if complete else ('running' if finished else 'waiting'), 'Prepare results for review',
                    'Combine inventory records and model suggestions'),
     ]
@@ -259,6 +302,10 @@ def source_card_html(file_name, size_bytes, n_total):
 
 KEEP_OPEN_HTML = ('<div class="hca-note"><div class="hca-note-title">&#9432; Keep this page open</div>'
                   '<p>Results will be available once processing is complete. Model suggestions should be reviewed before export.</p></div>')
+RUN_BANNER_HTML = ('<div class="hca-run-banner" role="alert"><div class="hca-run-banner-icon">&#9888;</div><div>'
+                   '<div class="hca-run-banner-title">Keep this page open while HarmoniCA runs</div>'
+                   '<p>Closing or refreshing this tab loses the run and its results. You can switch between tabs while you wait.</p>'
+                   '</div></div>')
 st.markdown('''
 <div class="hca-header">
   <div class="hca-brand">
@@ -269,18 +316,19 @@ st.markdown('''
   </div>
   <div class="hca-links">
     <a href="https://github.com/julia-pfarr/HarmoniCA#readme" target="_blank">Documentation &#8599;</a>
-    <span class="hca-workspace"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M9 3h6M10 3v6L4.5 19A1.5 1.5 0 0 0 5.8 21h12.4a1.5 1.5 0 0 0 1.3-2L14 9V3"/><path d="M7.5 15h9"/></svg>
-      Research workspace</span>
   </div>
 </div>
-<div class="hca-eyebrow">Research workspace</div>
 ''', unsafe_allow_html=True)
-# The workflow stepper sits under the header on every tab; the Check & harmonize
-# code below fills it with the current step.
-stepper_slot = st.empty()
 engine = importlib.util.find_spec('harmonica') is not None
+RESULT_VIEWS = ['Visual dashboard', 'Item inspector', 'Models & dimensions']
+WORKFLOW_VIEWS = ['Prepare', 'Inventory check', 'Harmonization', 'Results']
+sidebar_tab = st.session_state.get('tab_ids_by_title', {}).get(
+    st.session_state.get('main_tab', 'Prepare'), st.session_state.get('main_tab', 'Prepare'))
+if sidebar_tab in RESULT_VIEWS:
+    st.session_state.results_tab = sidebar_tab
+    sidebar_tab = 'Results'
+if sidebar_tab == 'Results':
+    sidebar_tab = st.session_state.get('results_tab', 'Visual dashboard')
 with st.sidebar:
     st.subheader('Analysis settings')
     # Plain if/else: a one-line conditional expression would be echoed by Streamlit 'magic'
@@ -291,134 +339,181 @@ with st.sidebar:
     # Set from 'Run settings' in the Inventory check tab (read here because Prepare runs first)
     force = st.session_state.get('force_rerun', False)
     minutes = st.number_input('Run timeout (minutes)', 1, 180, 30)
-    st.divider()
-    threshold = st.slider('Flag confidence below', 0.0, 1.0, 0.65, 0.05)
-    st.caption('A review threshold, not a validated error cutoff. Confidence is an engine score, not calibrated clinical certainty.')
+    threshold = st.session_state.get('review_threshold', 0.65)
+    active_tab = st.session_state.get('tab_ids_by_title', {}).get(
+        st.session_state.get('main_tab', 'Prepare'), 'Prepare')
+    if sidebar_tab in RESULT_VIEWS and 'result' in st.session_state:
+        st.divider()
+        threshold = st.slider('Flag confidence below', 0.0, 1.0, 0.65, 0.05, key='review_threshold')
+        st.caption('A review threshold, not a validated error cutoff. Confidence is an engine score, not calibrated clinical certainty.')
     st.caption('First runs can download model weights. Keep the browser open until completion.')
 
 items = None
 source_name = 'example_items.csv'
-# The tabs track their state under 'main_tab', so buttons can switch tabs by setting it.
-prepare, check, harmonize, explore, review, models = st.tabs(['Prepare', 'Inventory check', 'Harmonization', 'Visual dashboard', 'Item inspector', 'Models & dimensions'],
-                                                             key='main_tab', on_change='rerun')
+job = st.session_state.get('run_job')
+running = job is not None and job['status'] == 'running'
+if job is not None and job['status'] == 'done' and not job.get('collected'):
+    job['collected'] = True
+    st.session_state.update(result=job['result'], result_bytes=job['data'], log=job['log'], manifest=job['manifest'],
+                            run_summary=job, result_fingerprint=job['fingerprint'], decisions={})
+has_result = 'result' in st.session_state
+tab_ids = WORKFLOW_VIEWS
+tab_titles = {label: label for label in tab_ids}
+stored_tab = st.session_state.get('main_tab')
+selected_tab = st.session_state.get('tab_ids_by_title', {}).get(stored_tab, stored_tab)
+if selected_tab in RESULT_VIEWS:
+    st.session_state.results_tab = selected_tab
+    selected_tab = 'Results'
+st.session_state.main_tab = tab_titles.get(selected_tab, tab_titles['Prepare'])
+st.session_state.tab_ids_by_title = {title: label for label, title in tab_titles.items()}
+if running:
+    st.markdown(RUN_BANNER_HTML, unsafe_allow_html=True)
+tabs = dict(zip(tab_ids, st.tabs([tab_titles[label] for label in tab_ids], key='main_tab', on_change='rerun')))
+prepare, check, harmonize, results = (tabs[label] for label in tab_ids)
+with results:
+    explore, review, models = st.tabs(RESULT_VIEWS, key='results_tab', on_change='rerun')
 
 
 def go_to_tab(label):
-    st.session_state.main_tab = label
+    if label in RESULT_VIEWS:
+        st.session_state.main_tab = tab_titles['Results']
+        st.session_state.results_tab = label
+    else:
+        st.session_state.main_tab = tab_titles.get(label, label)
+
 with prepare:
-    left, right = st.columns([3,2])
-    with left:
-        st.subheader('Questionnaire input')
-        mode = st.radio('Input source', ['Upload files','Explore reference inventory'], horizontal=True)
-        uploads = st.file_uploader('Upload CSV or Excel files', type=['csv','xlsx'], accept_multiple_files=True)
-        st.caption('Select one format per questionnaire. Files sharing questionnaire names are combined; conflicting item IDs must be resolved.')
-        sample = Path(__file__).with_name('example_items.csv').read_bytes()
-        st.download_button('Download input template', sample, 'example_items.csv','text/csv')
-        if mode == 'Explore reference inventory':
-            seed = pd.read_csv(Path(__file__).with_name('assets')/'reference_inventory.csv',dtype=str,keep_default_na=False).drop_duplicates(['construct','questionnaire','item_id'],keep='last')
-            reference_construct = st.selectbox('Reference construct',CATALOG['CONSTRUCTS'])
-            choices = sorted(seed.loc[seed.construct==reference_construct,'questionnaire'].unique())
-            reference_q = st.multiselect('Reference questionnaires',choices,default=choices[:2])
-            raw = seed.loc[(seed.construct==reference_construct)&seed.questionnaire.isin(reference_q),COLUMNS].to_csv(index=False).encode()
-            sources = [('reference_items.csv', raw)]
-        else:
-            sources = [(u.name, u.getvalue()) for u in uploads]
-        source_name = ', '.join(name for name, _ in sources)
-        frames, summaries = [], []
-        raw = None
-        for index, (filename, file_raw) in enumerate(sources):
-            raw = file_raw
-            source_name_for_file = filename
-            file_key = hashlib.sha256(filename.encode()+raw).hexdigest()[:16]+'_'+str(index)
-            with st.expander(filename, expanded=True):
-                try:
-                    if len(raw) > 10*1024*1024:
-                        raise ValueError('File exceeds 10 MB.')
-                    if source_name_for_file.lower().endswith('.xlsx'):
-                        workbook = pd.ExcelFile(io.BytesIO(raw))
-                        sheet = st.selectbox('Worksheet', workbook.sheet_names, key='sheet_'+file_key)
-                        frame = pd.read_excel(workbook, sheet_name=sheet, dtype=str).fillna('')
-                        file_key += hashlib.sha256(sheet.encode()).hexdigest()[:8]
-                    else:
-                        detected = detect_separator(raw)
-                        separator = st.selectbox('CSV separator', SEPARATORS, index=SEPARATORS.index(detected),
-                                                 format_func=lambda x: {',':'Comma',';':'Semicolon','\t':'Tab'}[x],
-                                                 key='sep_'+file_key,
-                                                 help='Detected automatically from the header row. Change it if columns look wrong.')
-                        frame = pd.read_csv(io.BytesIO(raw), sep=separator, dtype=str, keep_default_na=False, encoding='utf-8-sig')
-                    frame.columns = frame.columns.astype(str).str.strip()
-                    if frame.empty or not len(frame.columns):
-                        raise ValueError('No item rows found.')
-                    st.caption(f'Loaded {len(frame)} rows. Match your columns to HarmoniCA fields.')
-                    mapping = {}
-                    cols = st.columns(2)
-                    for i, field in enumerate(COLUMNS):
-                        options = ['— Select —'] + list(frame.columns)
-                        with cols[i % 2]:
-                            mapping[field] = st.selectbox(field, options, index=options.index(field) if field in options else 0, key=f'map_{field}_{file_key}')
-                    chosen = list(mapping.values())
-                    if '— Select —' in chosen:
-                        st.warning('Match all four columns to enable running.')
-                    elif len(set(chosen)) != 4:
-                        st.error('Choose a different source column for each field.')
-                    else:
-                        mapped = pd.DataFrame({field:frame[column] for field,column in mapping.items()})
-                        st.caption('Edit input items if needed')
-                        edited = st.data_editor(mapped, hide_index=True, num_rows='dynamic', width='stretch', key='input_'+file_key+hashlib.sha256(str(mapping).encode()).hexdigest())
-                        file_items = parse_items(edited.to_csv(index=False).encode())
-                        unknown = set(file_items.construct)-set(CATALOG['CONSTRUCTS'])
-                        if unknown:
-                            raise ValueError('Unsupported constructs: '+', '.join(sorted(unknown))+'. Supported: '+', '.join(CATALOG['CONSTRUCTS']))
-                        frames.append(file_items)
-                        summaries.append({'File': filename, 'Items': len(file_items), 'Questionnaires': ', '.join(sorted(file_items.questionnaire.unique()))})
-                except Exception as exc:
-                    st.error(f'{filename}: {exc}')
-        if sources and len(frames) == len(sources):
-            try:
-                items = parse_items(pd.concat(frames, ignore_index=True).to_csv(index=False).encode())
-                st.dataframe(pd.DataFrame(summaries), hide_index=True, width='stretch')
-                st.success(f'{len(sources)} files ready: {len(items)} items across {items.questionnaire.nunique()} questionnaires.')
-            except Exception as exc:
-                items = None
-                st.error(f'Combined input needs attention: {exc}')
-        elif sources:
-            st.warning('Complete the column mapping and resolve errors in every file before running.')
-        else:
-            st.info('Upload files or choose “Explore reference inventory”.')
-        # Canonical combined bytes identify the complete input in the run record.
-        raw = items.to_csv(index=False).encode() if items is not None else None
-    with right:
-        st.subheader('Selection')
-        if items is not None:
-            # All six constructs are listed and both selections start empty.
-            in_file = [c for c in CATALOG['CONSTRUCTS'] if c in set(items.construct)]
-            constructs = st.multiselect('Constructs', CATALOG['CONSTRUCTS'], key='run_constructs',
-                                        placeholder='Choose one or more constructs')
-            missing = [c for c in constructs if c not in in_file]
-            if missing:
-                st.caption('No items in your input for: '+', '.join(missing))
-            # Questionnaires follow the selected constructs. Keep the user's picks, but
-            # drop any that no longer belong to a selected construct.
-            q_options = sorted(items.loc[items.construct.isin(constructs), 'questionnaire'].unique())
-            st.session_state.run_questionnaires = [q for q in st.session_state.get('run_questionnaires', []) if q in q_options]
-            questionnaires = st.multiselect('Questionnaires', q_options, key='run_questionnaires',
-                                            placeholder='Choose questionnaires' if q_options else 'Choose a construct first',
-                                            disabled=not q_options)
-            selected = items[items.construct.isin(constructs) & items.questionnaire.isin(questionnaires)]
-            st.metric('Items ready', len(selected))
-        else:
-            selected = pd.DataFrame(columns=COLUMNS)
-            constructs = []
-        # Identifies the current selection; results remember the one they were made from.
+    st.markdown(page_intro_html('Section 1', 'Add questionnaire items',
+                                'Upload a questionnaire file, choose a reference questionnaire, or enter items manually.'),
+                unsafe_allow_html=True)
+    mode = st.radio('Input source', ['Upload files', 'Explore reference inventory', 'Enter items manually'],
+                    horizontal=True, key='prepare_input_source')
+    if mode == 'Enter items manually':
+        render_manual_workflow(CATALOG, lambda: go_to_tab('Inventory check'))
+        manual_items = st.session_state.get('workflow_items') if st.session_state.get('workflow_stage', 1) >= 2 else None
+        items = manual_items
+        selected = manual_items.copy() if manual_items is not None else pd.DataFrame(columns=COLUMNS)
+        constructs = sorted(selected.construct.unique()) if not selected.empty else []
+        source_name = 'manual entries'
+        raw = selected.to_csv(index=False).encode() if not selected.empty else b''
         fingerprint = hashlib.sha256(selected.to_csv(index=False).encode()+str(force).encode()).hexdigest()
-        if items is None:
-            st.info('Upload and validate your items.')
-        elif selected.empty:
-            st.info('Choose the constructs and questionnaires to harmonize.')
-        else:
-            st.success('Ready. Continue to check the inventory and run HarmoniCA.')
+    else:
+        left, right = st.columns([3,2])
+        with left:
+            st.subheader('Questionnaire input')
+            uploads = st.file_uploader('Upload CSV or Excel files', type=['csv','xlsx'], accept_multiple_files=True)
+            st.caption('Select one format per questionnaire. Files sharing questionnaire names are combined; conflicting item IDs must be resolved.')
+            sample = Path(__file__).with_name('example_items_redesign.csv').read_bytes()
+            st.download_button('Download input template', sample, 'example_items.csv','text/csv')
+            if mode == 'Explore reference inventory':
+                seed = pd.read_csv(Path(__file__).with_name('assets')/'reference_inventory.csv',dtype=str,keep_default_na=False).drop_duplicates(['construct','questionnaire','item_id'],keep='last')
+                reference_construct = st.selectbox('Reference construct',CATALOG['CONSTRUCTS'])
+                choices = sorted(seed.loc[seed.construct==reference_construct,'questionnaire'].unique())
+                reference_q = st.multiselect('Reference questionnaires',choices,default=choices[:2])
+                raw = seed.loc[(seed.construct==reference_construct)&seed.questionnaire.isin(reference_q),COLUMNS].to_csv(index=False).encode()
+                sources = [('reference_items.csv', raw)]
+            else:
+                sources = [(u.name, u.getvalue()) for u in uploads]
+            source_name = ', '.join(name for name, _ in sources)
+            frames, summaries = [], []
+            raw = None
+            for index, (filename, file_raw) in enumerate(sources):
+                raw = file_raw
+                source_name_for_file = filename
+                file_key = hashlib.sha256(filename.encode()+raw).hexdigest()[:16]+'_'+str(index)
+                with st.expander(filename, expanded=True):
+                    try:
+                        if len(raw) > 10*1024*1024:
+                            raise ValueError('File exceeds 10 MB.')
+                        if source_name_for_file.lower().endswith('.xlsx'):
+                            workbook = pd.ExcelFile(io.BytesIO(raw))
+                            sheet = st.selectbox('Worksheet', workbook.sheet_names, key='sheet_'+file_key)
+                            frame = pd.read_excel(workbook, sheet_name=sheet, dtype=str).fillna('')
+                            file_key += hashlib.sha256(sheet.encode()).hexdigest()[:8]
+                        else:
+                            detected = detect_separator(raw)
+                            separator = st.selectbox('CSV separator', SEPARATORS, index=SEPARATORS.index(detected),
+                                                     format_func=lambda x: {',':'Comma',';':'Semicolon','\t':'Tab'}[x],
+                                                     key='sep_'+file_key,
+                                                     help='Detected automatically from the header row. Change it if columns look wrong.')
+                            frame = pd.read_csv(io.BytesIO(raw), sep=separator, dtype=str, keep_default_na=False, encoding='utf-8-sig')
+                        frame.columns = frame.columns.astype(str).str.strip()
+                        if frame.empty or not len(frame.columns):
+                            raise ValueError('No item rows found.')
+                        st.caption(f'Loaded {len(frame)} rows. Match your columns to HarmoniCA fields.')
+                        mapping = {}
+                        cols = st.columns(2)
+                        for i, field in enumerate(COLUMNS):
+                            options = ['— Select —'] + list(frame.columns)
+                            with cols[i % 2]:
+                                mapping[field] = st.selectbox(field, options, index=options.index(field) if field in options else 0, key=f'map_{field}_{file_key}')
+                        chosen = list(mapping.values())
+                        if '— Select —' in chosen:
+                            st.warning('Match all four columns to enable running.')
+                        elif len(set(chosen)) != 4:
+                            st.error('Choose a different source column for each field.')
+                        else:
+                            mapped = pd.DataFrame({field:frame[column] for field,column in mapping.items()})
+                            st.caption('Edit input items if needed')
+                            edited = st.data_editor(mapped, hide_index=True, num_rows='dynamic', width='stretch', key='input_'+file_key+hashlib.sha256(str(mapping).encode()).hexdigest())
+                            file_items = parse_items(edited.to_csv(index=False).encode())
+                            unknown = set(file_items.construct)-set(CATALOG['CONSTRUCTS'])
+                            if unknown:
+                                raise ValueError('Unsupported constructs: '+', '.join(sorted(unknown))+'. Supported: '+', '.join(CATALOG['CONSTRUCTS']))
+                            frames.append(file_items)
+                            summaries.append({'File': filename, 'Items': len(file_items), 'Questionnaires': ', '.join(sorted(file_items.questionnaire.unique()))})
+                    except Exception as exc:
+                        st.error(f'{filename}: {exc}')
+            if sources and len(frames) == len(sources):
+                try:
+                    items = parse_items(pd.concat(frames, ignore_index=True).to_csv(index=False).encode())
+                    st.dataframe(pd.DataFrame(summaries), hide_index=True, width='stretch')
+                    st.success(f'{len(sources)} files ready: {len(items)} items across {items.questionnaire.nunique()} questionnaires.')
+                    st.markdown(page_intro_html('Section 2', 'Review & edit',
+                                                'Check the combined item list before selecting what to harmonize.'),
+                                unsafe_allow_html=True)
+                    review_key = hashlib.sha256(items.to_csv(index=False).encode()).hexdigest()[:16]
+                    edited_items = st.data_editor(items, hide_index=True, num_rows='dynamic', width='stretch',
+                                                  key='combined_review_'+review_key)
+                    items = parse_items(edited_items.to_csv(index=False).encode())
+                    unknown = set(items.construct)-set(CATALOG['CONSTRUCTS'])
+                    if unknown:
+                        raise ValueError('Unsupported constructs: '+', '.join(sorted(unknown))+'. Supported: '+', '.join(CATALOG['CONSTRUCTS']))
+                except Exception as exc:
+                    items = None
+                    st.error(f'Combined input needs attention: {exc}')
+            elif sources:
+                st.warning('Complete the column mapping and resolve errors in every file before running, or select **Enter items manually** above.')
+            else:
+                st.info('Upload files or choose “Explore reference inventory”.')
+            raw = items.to_csv(index=False).encode() if items is not None else None
+        with right:
+            st.subheader('Selection')
+            if items is not None:
+                in_file = [c for c in CATALOG['CONSTRUCTS'] if c in set(items.construct)]
+                constructs = st.multiselect('Constructs', CATALOG['CONSTRUCTS'], key='run_constructs',
+                                            placeholder='Choose one or more constructs')
+                missing = [c for c in constructs if c not in in_file]
+                if missing:
+                    st.caption('No items in your input for: '+', '.join(missing))
+                q_options = sorted(items.loc[items.construct.isin(constructs), 'questionnaire'].unique())
+                st.session_state.run_questionnaires = [q for q in st.session_state.get('run_questionnaires', []) if q in q_options]
+                questionnaires = st.multiselect('Questionnaires', q_options, key='run_questionnaires',
+                                                placeholder='Choose questionnaires' if q_options else 'Choose a construct first',
+                                                disabled=not q_options)
+                selected = items[items.construct.isin(constructs) & items.questionnaire.isin(questionnaires)]
+                st.metric('Items ready', len(selected))
+            else:
+                selected = pd.DataFrame(columns=COLUMNS)
+                constructs = []
+            fingerprint = hashlib.sha256(selected.to_csv(index=False).encode()+str(force).encode()).hexdigest()
+            if items is None:
+                st.info('Upload and validate your items.')
+            elif selected.empty:
+                st.info('Choose the constructs and questionnaires to harmonize.')
+            else:
+                st.success('Ready. Continue to check the inventory and run HarmoniCA.')
             st.button('Continue to Inventory check →', type='primary', width='stretch',
-                      on_click=go_to_tab, args=('Inventory check',))
+                      disabled=selected.empty or running, on_click=go_to_tab, args=('Inventory check',))
 
 # Shared numbers for the Inventory check and Harmonization tabs
 if not selected.empty:
@@ -428,22 +523,18 @@ if not selected.empty:
     n_duplicate = int((routed.route == 'duplicate').sum())
     n_model = n_total - n_inventory
     n_groups = selected.groupby(['construct', 'questionnaire']).ngroups
-    group_model_counts = routed[routed.route != 'inventory'].groupby(['construct', 'questionnaire']).size().to_dict()
 
 # A run happens in a background thread so that switching tabs (which reruns this
 # script) never interrupts it. The thread only updates the plain `job` dict; the
 # results are moved into session state here, on the next rerun after it finishes.
-job = st.session_state.get('run_job')
-running = job is not None and job['status'] == 'running'
-if job is not None and job['status'] == 'done' and not job.get('collected'):
-    job['collected'] = True
-    st.session_state.update(result=job['result'], result_bytes=job['data'], log=job['log'], manifest=job['manifest'],
-                            run_summary=job, result_fingerprint=job['fingerprint'], decisions={})
-has_result = 'result' in st.session_state
 # Results are kept when the selection changes; they're only replaced by a new run.
 stale = has_result and st.session_state.get('result_fingerprint') != fingerprint
-stepper_slot.markdown(render_stepper(1 if selected.empty else 3 if running else 4 if has_result and not stale else 2),
-                      unsafe_allow_html=True)
+active_tab = st.session_state.get('tab_ids_by_title', {}).get(st.session_state.get('main_tab'), 'Prepare')
+step_now = (3 if running else 4 if has_result and not stale else
+            1 if active_tab == 'Prepare' else 2 if active_tab == 'Inventory check' else
+            3)
+if step_now != st.session_state.get('step', 1):
+    st.session_state.step = step_now
 
 
 def stale_notice():
@@ -460,6 +551,18 @@ def reviewed_table(result, decisions):
         for field, value in decision.items():
             reviewed.loc[int(key), field] = value
     return reviewed
+
+
+def item_row_html(row, threshold):
+    confidence = pd.to_numeric(row.confidence, errors='coerce')
+    low = bool(pd.notna(confidence) and confidence < threshold)
+    confidence_text = ('Confidence unavailable' if pd.isna(confidence) else
+                       f'{confidence:.1%}' + (' · flagged' if low else ''))
+    return (f'<div class="hca-item-row"><div class="hca-item-main">'
+            f'<div class="hca-item-meta">{html.escape(str(row.questionnaire))} · {html.escape(str(row.item_id))}</div>'
+            f'<div class="hca-item-text">{html.escape(str(row.item_text))}</div></div>'
+            f'<div class="hca-item-side"><span class="hca-pill">{html.escape(str(row.dimension_label))}</span>'
+            f'<span class="hca-item-conf{" hca-item-conf--low" if low else ""}">{confidence_text}</span></div></div>')
 
 
 def build_dashboard_html(result):
@@ -506,14 +609,21 @@ def download_bar(key):
 def run_job(job, df, timeout):
     def on_progress(event):
         if event is not None:
-            key = (event['construct'], event['questionnaire'])
-            job['groups_done'] += 1
-            job['model_done'] += job['group_model_counts'].get(key, 0)
-            job['activity'].append((time.monotonic() - job['started'],
-                                    f"{event['questionnaire']} ({event['construct']}): {event['items']} items done, "
-                                    f"{job['group_model_counts'].get(key, 0)} sent to the model."))
+            job['model_done'] += event.get('items', 0)
+            if event.get('group_complete'):
+                job['groups_done'] += 1
+                job['activity'].append((time.monotonic() - job['started'],
+                                        f"{event['questionnaire']} ({event['construct']}) complete."))
     try:
         data, result, log = run_harmonica(df, job['force'], timeout, on_progress=on_progress)
+        model_keys = {tuple(key) for key in job.get('model_keys', [])}
+        if model_keys:
+            result_keys = list(map(tuple, result[['construct', 'questionnaire', 'item_id']].astype(str).to_numpy()))
+            model_predictions = result.loc[[key in model_keys for key in result_keys]]
+            added = append_model_predictions(persistent_inventory_path(), model_predictions, CATALOG['BEST_MODEL'])
+            if added:
+                job['activity'].append((time.monotonic() - job['started'],
+                                        f'{added} new model assignment(s) added to the local inventory.'))
         job['activity'].append((time.monotonic() - job['started'], 'Results combined and ready for review.'))
         job.update(data=data, result=result, log=log, status='done')
     except Exception as exc:
@@ -577,7 +687,8 @@ with check:
                       unsafe_allow_html=True)
         context = {'source_name': source_name, 'fingerprint': fingerprint, 'force': force,
                    'n_total': n_total, 'n_inventory': n_inventory, 'n_duplicate': n_duplicate, 'n_model': n_model,
-                   'n_groups': n_groups, 'group_model_counts': group_model_counts,
+                   'n_groups': n_groups,
+                   'model_keys': routed.loc[routed.route != 'inventory', ['construct', 'questionnaire', 'item_id']].astype(str).values.tolist(),
                    'manifest': {'created_utc': datetime.now(timezone.utc).isoformat(), 'input_file': source_name,
                                 'input_sha256': hashlib.sha256(raw).hexdigest() if raw else '',
                                 'submitted_sha256': hashlib.sha256(selected.to_csv(index=False).encode()).hexdigest(),
@@ -669,23 +780,23 @@ with explore:
             st.plotly_chart(fig,width='stretch',key='flow')
             a,b=st.columns([3,2])
             with a:
-                st.subheader('Coverage map')
+                st.subheader('Coverage map', anchor=False)
+                st.caption('Coverage is item composition, not harmonized participant severity.')
                 percent=st.toggle('Show percentage within each questionnaire',value=True)
                 st.plotly_chart(coverage_figure(subset,percent),width='stretch',key='coverage')
             with b:
-                st.subheader('Assignment confidence')
+                st.subheader('Assignment confidence', anchor=False)
+                st.caption('Inventory confidence may reflect stored expert agreement; full distributions are unavailable for those rows.')
                 st.plotly_chart(confidence_figure(subset),width='stretch',key='confidence')
-            st.caption('Coverage is item composition, not harmonized participant severity. Inventory confidence may reflect stored expert agreement rather than a fresh model score; full distributions are unavailable for those rows.')
             st.subheader('Compare questionnaires')
             st.plotly_chart(comparison_figure(subset), width='stretch', key='questionnaire_comparison')
-            st.subheader('Items behind the view')
-            st.caption('Filters above update these cards. Open Item inspector to record decisions.')
-            for _,card in subset.head(6).iterrows():
-                with st.container(border=True):
-                    st.caption(f'{card.questionnaire} · {card.item_id}')
-                    st.write(card.item_text)
-                    st.write('**'+card.dimension_label+'**')
-            if len(subset)>6:st.caption(f'Showing the first 6 of {len(subset)} filtered items; inspect every item in Item inspector.')
+            listed=subset.head(6)
+            head,jump=st.columns([3,1],vertical_alignment='bottom')
+            head.subheader('Items behind the view',anchor=False)
+            head.caption('Items matching the filters above' + (f' (showing the first 6 of {len(subset)})' if len(subset)>6 else f' ({len(subset)})') + '.')
+            jump.button('Open Item inspector →',width='stretch',on_click=go_to_tab,args=('Item inspector',),key='open_inspector')
+            with st.container(border=True):
+                st.markdown(''.join(item_row_html(item,threshold) for item in listed.itertuples()),unsafe_allow_html=True)
 
 with review:
     stale_notice()

@@ -11,6 +11,20 @@ COLUMNS = ['construct', 'questionnaire', 'item_id', 'item_text']
 SEPARATORS = [',', ';', '\t']
 
 
+def load_ui_inventory():
+    root = Path(__file__).resolve().parent
+    reference_path = root/'assets'/'reference_inventory.csv'
+    configured = os.environ.get('HARMONICA_INVENTORY_PATH')
+    persistent_path = (Path(configured).expanduser() if configured else
+                       root.parent/'src'/'harmonica'/'inventory'/'harmonized_inventory.csv')
+    paths = [reference_path]
+    if persistent_path.resolve() != reference_path.resolve() and persistent_path.is_file():
+        paths.append(persistent_path)
+    frames = [pd.read_csv(path, dtype=str, keep_default_na=False) for path in paths]
+    inventory = pd.concat(frames, ignore_index=True, sort=False)
+    return inventory.drop_duplicates(['construct', 'questionnaire', 'item_id'], keep='last').reset_index(drop=True)
+
+
 def detect_separator(data):
     """Guess the CSV separator from the header line, which (unlike item texts)
     rarely contains commas. Excel in e.g. French locales saves with ';'."""
@@ -64,7 +78,7 @@ def inventory_check(df, force=False):
     With `force`, every item is sent to the model: exact matches become 'new' (they
     are re-run, not duplicates).
     """
-    inv = pd.read_csv(Path(__file__).resolve().parent/'assets'/'reference_inventory.csv', dtype=str, keep_default_na=False)
+    inv = load_ui_inventory()
     inv_key = {(r.construct, r.questionnaire, r.item_id): _normalize(r.item_text) for r in inv.itertuples()}
     inv_text = {(r.construct, r.questionnaire, _normalize(r.item_text)) for r in inv.itertuples()}
     routes = []
@@ -73,7 +87,9 @@ def inventory_check(df, force=False):
         if inv_key.get((r.construct, r.questionnaire, r.item_id)) == text:
             routes.append('new' if force else 'inventory')
         elif (r.construct, r.questionnaire, text) in inv_text:
-            routes.append('duplicate')
+            confirmed = (not force and
+                         str(getattr(r, 'reuse_match', False)).strip().lower() in ('true', '1', 'yes'))
+            routes.append('inventory' if confirmed else 'duplicate')
         else:
             routes.append('new')
     out = df.copy()
@@ -84,12 +100,38 @@ def inventory_check(df, force=False):
 PROGRESS_PREFIX = '@@HARMONICA_PROGRESS '
 
 
+def run_items_with_progress(run_model, construct, questionnaire, items, report_progress):
+    """Run each independent model item and report completion immediately."""
+    predictions = []
+    for item in items:
+        predictions.extend(run_model(construct, [item]))
+        report_progress({
+            'construct': construct,
+            'questionnaire': questionnaire,
+            'items': 1,
+            'item_id': item['item_id'],
+        })
+    return predictions
+
+
+def attach_input_metadata(results, items):
+    """Carry caller-supplied definition fields through the engine output."""
+    keys = ['construct', 'questionnaire', 'item_id']
+    extra_columns = [column for column in items.columns if column not in results.columns and column != 'reuse_match']
+    if extra_columns:
+        metadata = items[keys + extra_columns]
+        results = results.merge(metadata, on=keys, how='left', validate='one_to_one')
+    return results
+
+
 def run_harmonica(df, force=False, timeout=1800, on_progress=None):
     """Run the engine in an isolated worker process.
 
     `on_progress(event)` is called about twice a second while the worker runs:
     `event` is None on a plain tick (e.g. to refresh elapsed time), or a dict
-    {'construct', 'questionnaire', 'items'} each time a questionnaire finishes.
+    {'construct', 'questionnaire', 'items', 'item_id'} for each model item,
+    followed by {'construct', 'questionnaire', 'items': 0, 'group_complete': True}
+    when a questionnaire finishes.
     """
     import json
     import queue
@@ -103,7 +145,7 @@ def run_harmonica(df, force=False, timeout=1800, on_progress=None):
         work = Path(directory)
         source, target, inventory = work/'items.csv', work/'results.csv', work/'inventory.csv'
         df.to_csv(source, index=False)
-        shutil.copyfile(root/'assets'/'reference_inventory.csv', inventory)
+        load_ui_inventory().to_csv(inventory, index=False)
         command = [sys.executable, str(root/'engine_worker.py'), str(source), str(target), str(inventory), str(cache), '1' if force else '0']
         proc = subprocess.Popen(command, cwd=work, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
                                 text=True, encoding='utf-8', errors='replace', env={**os.environ, 'PYTHONUNBUFFERED': '1'})
@@ -149,4 +191,6 @@ def run_harmonica(df, force=False, timeout=1800, on_progress=None):
         keys=['construct','questionnaire','item_id']
         if len(results)!=len(df) or set(map(tuple,results[keys].values)) != set(map(tuple,df[keys].values)):
             raise RuntimeError('Output items do not match submitted items. Results were rejected.')
+        results = attach_input_metadata(results, df)
+        data = results.to_csv(index=False).encode('utf-8')
         return data, results, log
