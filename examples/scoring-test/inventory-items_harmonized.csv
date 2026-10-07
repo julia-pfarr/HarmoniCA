@@ -1,0 +1,45 @@
+questionnaire,construct,item_id,item_text,dimension,dimension_label,confidence,source
+SCL-90,anxiety,SCL-90_13,Feeling afraid in open spaces or on the streets.,2,Cognitive symptoms,0.721,inventory
+SCL-90,anxiety,SCL-90_17,Trembling.,1,Somatic symptoms,0.9,inventory
+SCL-90,anxiety,SCL-90_23,Suddenly scared for no reason.,2,Cognitive symptoms,0.721,inventory
+SCL-90,anxiety,SCL-90_25,Feeling afraid to go out of your house alone.,2,Cognitive symptoms,0.9,inventory
+SCL-90,anxiety,SCL-90_33,Feeling fearful.,2,Cognitive symptoms,0.642,inventory
+SCL-90,anxiety,SCL-90_39,Heart pounding or racing.,1,Somatic symptoms,1.0,inventory
+SCL-90,anxiety,SCL-90_47,"Feeling afraid to travel on buses, subways, trains.",2,Cognitive symptoms,0.732,inventory
+SCL-90,anxiety,SCL-90_50,"Having to avoid certain things, places, or activities because they frighten you.",2,Cognitive symptoms,0.805,inventory
+SCL-90,anxiety,SCL-90_57,Feeling tense or keyed up.,1,Somatic symptoms,0.458,inventory
+SCL-90,anxiety,SCL-90_70,"Feeling uneasy in crowds, such as shopping or at a movie.",2,Cognitive symptoms,0.663,inventory
+SCL-90,anxiety,SCL-90_72,Spells of terror or panic.,2,Cognitive symptoms,0.521,inventory
+SCL-90,anxiety,SCL-90_75,Feeling nervous when you are left alone.,2,Cognitive symptoms,0.663,inventory
+SCL-90,anxiety,SCL-90_78,Feeling so restless you couldn’t sit still.,1,Somatic symptoms,0.732,inventory
+SCL-90,anxiety,SCL-90_80,Feeling that familiar things are strange or unreal.,2,Cognitive symptoms,0.9,inventory
+SCL-90,anxiety,SCL-90_82,Feeling afraid you will faint in public.,2,Cognitive symptoms,0.521,inventory
+SCL-90,anxiety,SCL-90_86,Feeling pushed to get things done.,2,Cognitive symptoms,1.0,inventory
+SCL-90,depression,SCL-90_05,Loss of sexual interest or pleasure.,4,Activity & interest deficits,0.532,inventory
+SCL-90,depression,SCL-90_14,Feeling low in energy or slowed down.,3,Somatic & vegetative symptoms,0.437,inventory
+SCL-90,depression,SCL-90_20,Crying easily.,1,Mood & affective symptoms,0.637,inventory
+SCL-90,depression,SCL-90_22,Feeling of being trapped or caught.,5,Anxiety & distress,0.384,inventory
+SCL-90,depression,SCL-90_26,Blaming yourself for things.,2,Cognitive & self-perception,0.805,inventory
+SCL-90,depression,SCL-90_29,Feeling lonely.,1,Mood & affective symptoms,0.574,inventory
+SCL-90,depression,SCL-90_30,Feeling blue.,1,Mood & affective symptoms,1.0,inventory
+SCL-90,depression,SCL-90_31,Worrying too much about things.,5,Anxiety & distress,0.584,inventory
+SCL-90,depression,SCL-90_32,Feeling no interest in things.,4,Activity & interest deficits,0.9,inventory
+SCL-90,depression,SCL-90_54,Feeling hopeless about the future.,2,Cognitive & self-perception,0.663,inventory
+SCL-90,depression,SCL-90_71,Feeling everything is an effort.,4,Activity & interest deficits,0.395,inventory
+SCL-90,depression,SCL-90_79,Feelings of worthlessness.,2,Cognitive & self-perception,0.811,inventory
+SDQ,sleep,SDQ_01,Do you have trouble falling asleep?,2,Nocturnal sleep disturbances,0.857,inventory
+SDQ,sleep,SDQ_02,Do you have trouble staying asleep?,2,Nocturnal sleep disturbances,1.0,inventory
+SDQ,sleep,SDQ_03,Do you take anything to help you sleep?,2,Nocturnal sleep disturbances,0.736,inventory
+SDQ,sleep,SDQ_04,Do you use alcohol to help you sleep?,2,Nocturnal sleep disturbances,0.637,inventory
+SDQ,sleep,SDQ_05,Do you have any medical conditions that disrupt your sleep?,2,Nocturnal sleep disturbances,0.462,inventory
+SDQ,sleep,SDQ_06,Have you lost interest in hobbies or activities?,-1,Does not fit,0.56,inventory
+SDQ,sleep,SDQ_07,"Do you feel sad, irritable, or hopeless?",-1,Does not fit,0.637,inventory
+SDQ,sleep,SDQ_08,Do you feel nervous or worried?,-1,Does not fit,0.56,inventory
+SDQ,sleep,SDQ_09,Do you think something is wrong with your body?,-1,Does not fit,0.736,inventory
+SDQ,sleep,SDQ_10,Are you a shift worker or is your sleep schedule irregular?,-1,Does not fit,1.0,inventory
+SDQ,sleep,SDQ_11,Are your legs restless and/or uncomfortable before bed?,2,Nocturnal sleep disturbances,0.462,inventory
+SDQ,sleep,SDQ_12,Have you been told that you are restless or that you kick your legs in your sleep?,2,Nocturnal sleep disturbances,0.615,inventory
+SDQ,sleep,SDQ_13,Do you have any unusual behaviours or movements during sleep?,3,REM sleep behavior and dreaming,0.637,inventory
+SDQ,sleep,SDQ_14,Do you snore?,4,Sleep-disordered breathing,1.0,inventory
+SDQ,sleep,SDQ_15,"Has anyone said that you stop breathing, gasp, snort, or choke in your sleep?",4,Sleep-disordered breathing,1.0,inventory
+SDQ,sleep,SDQ_16,Do you have difficulty staying awake during the day?,1,Daytime sleepiness and alertness,1.0,inventory

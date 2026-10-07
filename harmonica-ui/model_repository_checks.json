@@ -1,0 +1,50 @@
+[
+  {
+    "construct": "depression",
+    "repo": "julia-pfarr/HarmoniCA_depression",
+    "status": 200,
+    "model_files": [
+      "contrastive_model.pkl"
+    ]
+  },
+  {
+    "construct": "apathy",
+    "repo": "julia-pfarr/HarmoniCA_apathy",
+    "status": 200,
+    "model_files": [
+      "contrastive_model.pkl"
+    ]
+  },
+  {
+    "construct": "psychosis",
+    "repo": "julia-pfarr/HarmoniCA_psychosis",
+    "status": 200,
+    "model_files": [
+      "contrastive_model.pkl"
+    ]
+  },
+  {
+    "construct": "anxiety",
+    "repo": "julia-pfarr/HarmoniCA_anxiety",
+    "status": 200,
+    "model_files": [
+      "contrastive_model.pkl"
+    ]
+  },
+  {
+    "construct": "sleep",
+    "repo": "julia-pfarr/HarmoniCA_sleep",
+    "status": 200,
+    "model_files": [
+      "contrastive_model.pkl"
+    ]
+  },
+  {
+    "construct": "impulse_control",
+    "repo": "julia-pfarr/HarmoniCA_impulse-control",
+    "status": 200,
+    "model_files": [
+      "prototype_model.pkl"
+    ]
+  }
+]

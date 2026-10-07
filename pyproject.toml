@@ -3,6 +3,10 @@ name = "pyHarmoniCA"
 readme = "README.md"
 requires-python = ">=3.13"
 description = "Harmonize clinical assessments"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+]
 dependencies = [
     "sentence-transformers>=2.2.0",
     "torch>=2.0.0",
