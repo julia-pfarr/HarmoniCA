@@ -217,6 +217,27 @@ def _read_manual_queue(supported_constructs):
     return pd.DataFrame(st.session_state.workflow_manual_items, columns=ITEM_COLUMNS)
 
 
+REVIEW_COLUMNS = ['same_item?', 'construct', 'questionnaire', 'item_id', 'item_text', 'answer_options', 'scoring',
+                  'matched_item_id', 'matched_item_text', 'matched_dimension_label']
+
+
+def duplicate_review_editor(duplicates, key, locked=False):
+    """Editable possible duplicates table, same_item? first so it is always visible.
+
+    Used by the manual entry review and by the Inventory check step for uploaded files, so both
+    sources answer the same question the same way. `duplicates` needs the matched_* columns
+    from classify_items. Columns an input does not have (for example answer_options for items
+    taken from the reference inventory) are left out. Returns the table with the edited same_item?.
+    """
+    columns = [column for column in REVIEW_COLUMNS if column in duplicates.columns]
+    return st.data_editor(
+        duplicates[columns], hide_index=True, width='stretch',
+        disabled=True if locked else [column for column in columns if column != 'same_item?'],
+        column_config={'same_item?': st.column_config.CheckboxColumn('same_item?', default=True)},
+        key=key,
+    )
+
+
 def _review_groups(routed):
     exact = routed[routed['route'] == 'inventory']
     duplicates = routed[routed['route'] == 'duplicate']
@@ -232,14 +253,7 @@ def _review_groups(routed):
         st.caption('No same-text items under a different item_id.')
         edited_duplicates = duplicates
     else:
-        review_columns = ['construct', 'questionnaire', 'item_id', 'item_text', 'answer_options', 'scoring',
-                  'matched_item_id', 'matched_item_text', 'matched_dimension_label', 'same_item?']
-        edited_duplicates = st.data_editor(
-            duplicates[review_columns], hide_index=True, width='stretch',
-            disabled=[column for column in review_columns if column != 'same_item?'],
-            column_config={'same_item?': st.column_config.CheckboxColumn('same_item?', default=True)},
-            key='workflow_duplicate_review',
-        )
+        edited_duplicates = duplicate_review_editor(duplicates, 'workflow_duplicate_review')
         st.caption('Keep checked to reuse the inventory assignment. Uncheck items that should be treated as new.')
 
     st.subheader(f'New items · {len(new_items)}')

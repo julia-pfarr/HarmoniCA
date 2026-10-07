@@ -14,8 +14,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 import pandas as pd
 import streamlit as st
-from backend import COLUMNS, SEPARATORS, detect_separator, inventory_check, parse_items, run_harmonica
-from harmonize_workflow import append_model_predictions, persistent_inventory_path, render_manual_workflow
+from backend import (COLUMNS, SEPARATORS, UPLOAD_COLUMNS, apply_reuse_decisions, decisions_from_review,
+                     detect_separator, inventory_check, parse_items, run_harmonica)
+from harmonize_workflow import (append_model_predictions, classify_items, duplicate_review_editor, load_inventory,
+                                persistent_inventory_path, render_manual_workflow)
 
 CATALOG = json.loads(Path(__file__).with_name('assets').joinpath('model_catalog.json').read_text())
 if os.environ.get('HARMONICA_SOURCE_DIR'):
@@ -223,7 +225,7 @@ def processing_card_html(file_name, n_model, model_done, n_inventory, n_duplicat
     pct = 100 if n_model == 0 else min(100, round(100 * model_done / n_model))
     rows = [
         _check_row('done', 'Validate file and required columns', f'{n_total} items validated'),
-        _check_row('done', 'Compare items with the inventory', f'{n_inventory} exact matches · {n_duplicate} possible duplicates'),
+        _check_row('done', 'Compare items with the inventory', f'{n_inventory} reused · {n_duplicate} duplicates kept as new'),
         _check_row('done' if finished else 'running', 'Process new items with the model',
                    f'{model_done} of {n_model} items processed'),
         _check_row('done' if complete else ('running' if finished else 'waiting'), 'Prepare results for review',
@@ -266,16 +268,18 @@ _SPARK_SVG = ('<svg width="18" height="18" viewBox="0 0 24 24" fill="none" strok
               '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z"/></svg>')
 
 
-def routing_card_html(n_total, n_inventory, n_duplicate, n_model, force):
+def routing_card_html(n_total, n_inventory, n_duplicate, n_model, force, n_reused_duplicates=0):
     pct_inv = 0 if n_total == 0 else 100 * n_inventory / n_total
+    n_candidates = n_duplicate + n_reused_duplicates
     reuse_sub = ('Inventory reuse is off: every item goes to the model.' if force
                  else f'{n_inventory} items will use their existing inventory records.')
     rows = [
         (_DB_SVG, 'Reuse inventory matches', reuse_sub, 'Skipped' if force else 'Ready', 'off' if force else 'ready'),
-        (_COPY_SVG, 'No duplicate review needed' if n_duplicate == 0 else f'{n_duplicate} possible duplicate(s)',
-         '0 possible duplicates under different item IDs.' if n_duplicate == 0 else
-         'Same wording as an inventory item under a different item ID · processed by the model as new items.',
-         'Clear' if n_duplicate == 0 else 'Found', 'off' if n_duplicate == 0 else 'queued'),
+        (_COPY_SVG, 'No duplicate review needed' if n_candidates == 0 else f'{n_candidates} possible duplicate(s)',
+         '0 possible duplicates under different item IDs.' if n_candidates == 0 else
+         f'Same wording as an inventory item under a different item ID · {n_reused_duplicates} reused as the same item, '
+         f'{n_duplicate} processed by the model as new items.',
+         'Clear' if n_candidates == 0 else 'Reviewed', 'off' if n_candidates == 0 else 'queued'),
         (_SPARK_SVG, 'Harmonize new items', f'{n_model} new items are queued for model processing.', 'Queued', 'queued'),
     ]
     return (f'<div class="hca-card"><div class="hca-card-title">Item routing</div>'
@@ -414,6 +418,8 @@ with prepare:
             else:
                 sources = [(u.name, u.getvalue()) for u in uploads]
             source_name = ', '.join(name for name, _ in sources)
+            # Uploaded files need all six fields. Reference items only have the first four.
+            item_fields = COLUMNS if mode == 'Explore reference inventory' else UPLOAD_COLUMNS
             frames, summaries = [], []
             raw = None
             for index, (filename, file_raw) in enumerate(sources):
@@ -442,20 +448,20 @@ with prepare:
                         st.caption(f'Loaded {len(frame)} rows. Match your columns to HarmoniCA fields.')
                         mapping = {}
                         cols = st.columns(2)
-                        for i, field in enumerate(COLUMNS):
+                        for i, field in enumerate(item_fields):
                             options = ['— Select —'] + list(frame.columns)
                             with cols[i % 2]:
                                 mapping[field] = st.selectbox(field, options, index=options.index(field) if field in options else 0, key=f'map_{field}_{file_key}')
                         chosen = list(mapping.values())
                         if '— Select —' in chosen:
-                            st.warning('Match all four columns to enable running.')
-                        elif len(set(chosen)) != 4:
+                            st.warning(f'Match all {len(item_fields)} columns to enable running.')
+                        elif len(set(chosen)) != len(item_fields):
                             st.error('Choose a different source column for each field.')
                         else:
                             mapped = pd.DataFrame({field:frame[column] for field,column in mapping.items()})
                             st.caption('Edit input items if needed')
                             edited = st.data_editor(mapped, hide_index=True, num_rows='dynamic', width='stretch', key='input_'+file_key+hashlib.sha256(str(mapping).encode()).hexdigest())
-                            file_items = parse_items(edited.to_csv(index=False).encode())
+                            file_items = parse_items(edited.to_csv(index=False).encode(), item_fields)
                             unknown = set(file_items.construct)-set(CATALOG['CONSTRUCTS'])
                             if unknown:
                                 raise ValueError('Unsupported constructs: '+', '.join(sorted(unknown))+'. Supported: '+', '.join(CATALOG['CONSTRUCTS']))
@@ -465,7 +471,7 @@ with prepare:
                         st.error(f'{filename}: {exc}')
             if sources and len(frames) == len(sources):
                 try:
-                    items = parse_items(pd.concat(frames, ignore_index=True).to_csv(index=False).encode())
+                    items = parse_items(pd.concat(frames, ignore_index=True).to_csv(index=False).encode(), item_fields)
                     st.dataframe(pd.DataFrame(summaries), hide_index=True, width='stretch')
                     st.success(f'{len(sources)} files ready: {len(items)} items across {items.questionnaire.nunique()} questionnaires.')
                     st.markdown(page_intro_html('Section 2', 'Review & edit',
@@ -474,7 +480,7 @@ with prepare:
                     review_key = hashlib.sha256(items.to_csv(index=False).encode()).hexdigest()[:16]
                     edited_items = st.data_editor(items, hide_index=True, num_rows='dynamic', width='stretch',
                                                   key='combined_review_'+review_key)
-                    items = parse_items(edited_items.to_csv(index=False).encode())
+                    items = parse_items(edited_items.to_csv(index=False).encode(), item_fields)
                     unknown = set(items.construct)-set(CATALOG['CONSTRUCTS'])
                     if unknown:
                         raise ValueError('Unsupported constructs: '+', '.join(sorted(unknown))+'. Supported: '+', '.join(CATALOG['CONSTRUCTS']))
@@ -517,10 +523,16 @@ with prepare:
 
 # Shared numbers for the Inventory check and Harmonization tabs
 if not selected.empty:
+    if 'reuse_match' not in selected.columns:
+        # Uploaded and reference items: a possible duplicate is reused unless it was unchecked in the review.
+        selected = apply_reuse_decisions(selected, st.session_state.get('reuse_decisions', {}))
+        fingerprint = hashlib.sha256(selected.to_csv(index=False).encode()+str(force).encode()).hexdigest()
     routed = inventory_check(selected, force)
     n_total = len(routed)
     n_inventory = int((routed.route == 'inventory').sum())
     n_duplicate = int((routed.route == 'duplicate').sum())
+    # Possible duplicates the review confirmed as the same item (they are counted as reused).
+    n_reused_duplicates = int((inventory_check(selected.assign(reuse_match=False), force).route == 'duplicate').sum()) - n_duplicate
     n_model = n_total - n_inventory
     n_groups = selected.groupby(['construct', 'questionnaire']).ngroups
 
@@ -663,12 +675,12 @@ with check:
                                     'Existing items can be reused. New items will be sent to the model for harmonization.'),
                     unsafe_allow_html=True)
         st.markdown(stat_cards_html([
-            (n_inventory, 'Exact ID matches', 'Already available in the inventory', False),
-            (n_duplicate, 'Possible duplicates', 'Under different item IDs', False),
+            (n_inventory, 'Reused from the inventory', 'Exact ID matches and duplicates confirmed as the same item', False),
+            (n_duplicate, 'Duplicates kept as new', 'Same wording under a different item ID', False),
             (n_model, 'New items sent to the model', f'New to the inventory · {n_model / n_total:.1%} of your selection', True),
         ]), unsafe_allow_html=True)
         routing_col, side_col = st.columns([2.2, 1])
-        routing_col.markdown(routing_card_html(n_total, n_inventory, n_duplicate, n_model, force), unsafe_allow_html=True)
+        routing_col.markdown(routing_card_html(n_total, n_inventory, n_duplicate, n_model, force, n_reused_duplicates), unsafe_allow_html=True)
         with side_col:
             with st.container(border=True):
                 st.markdown('<div class="hca-card-title">Run settings</div>', unsafe_allow_html=True)
@@ -676,6 +688,26 @@ with check:
                 st.caption('Every item will be processed by the model in this run.' if force else
                            f'Leave unchecked to reuse exact matches. Only the {n_model} new items will be processed in this run.')
             side_col.markdown(source_card_html(source_name, len(raw) if raw else 0, n_total), unsafe_allow_html=True)
+        if mode != 'Enter items manually' and not force:
+            # Manual entries are reviewed while they are entered. Files get the same review here.
+            reference_file = Path(__file__).with_name('assets')/'reference_inventory.csv'
+            classified = classify_items(selected.drop(columns=['reuse_match'], errors='ignore'),
+                                        load_inventory(reference_file, persistent_inventory_path()))
+            candidates = classified[classified.route == 'duplicate'].copy()
+            if not candidates.empty:
+                decisions = st.session_state.get('reuse_decisions', {})
+                candidates['same_item?'] = [decisions.get((r['construct'], r['questionnaire'], r['item_id']), True)
+                                            for r in candidates.to_dict('records')]
+                st.subheader(f'Possible duplicates · {len(candidates)}')
+                st.caption('These items have the same wording as an inventory item but a different item_id. '
+                           'Keep same_item? checked to reuse the inventory assignment. '
+                           'Uncheck an item to send it to the model as a new item.')
+                review_key = hashlib.sha256(candidates[['construct', 'questionnaire', 'item_id']].to_csv(index=False).encode()).hexdigest()[:12]
+                edited = duplicate_review_editor(candidates, 'upload_duplicate_review_'+review_key, locked=running)
+                updated = {**decisions, **decisions_from_review(edited)}
+                if updated != decisions:
+                    st.session_state.reuse_decisions = updated
+                    st.rerun()
         if has_result and not running:
             st.info('A previous run is kept. Running again will replace its results'
                     + (' and your review decisions.' if st.session_state.get('decisions') else '.'))

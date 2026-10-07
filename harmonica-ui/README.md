@@ -19,6 +19,8 @@ If the engine is missing, follow https://github.com/julia-pfarr/HarmoniCA to ins
 
 In **Prepare**, choose **Explore reference inventory** to inspect stored assignments, **Upload files** to map CSV/Excel columns, or **Enter items manually** to add questionnaire items one at a time. Manual entries require construct, questionnaire, item ID, wording, answer options, and scoring, then move through inventory review and results. Exact matches and confirmed duplicates are reused; only new model predictions are appended to the local `harmonized_inventory.csv`. New-item inference requires model downloads.
 
+Uploaded CSV or Excel files need the same six fields as manual entries: construct, questionnaire, item_id, item_text, answer_options and scoring. Empty cells are rejected. Items taken from **Explore reference inventory** only need the first four. In **Inventory check**, items with the same wording as an inventory item under a different item ID are listed as possible duplicates. Each one has a `same_item?` checkbox, checked by default, so its inventory assignment is reused. Unchecking it sends the item to the model as a new item.
+
 For the existing dashboard workflow, upload CSV/Excel or choose **Explore reference inventory**, select a construct and questionnaires, then run from **Inventory check**. Open **Visual dashboard** and **Item inspector** to explore and review assignments. Force model rerun skips stored assignments.
 
 Open `dashboard_preview.html` directly in a browser for a standalone visual preview using real upstream anxiety inventory entries. This HTML is a reference-data preview, not a model-inference test.

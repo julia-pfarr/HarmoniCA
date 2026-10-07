@@ -1,7 +1,8 @@
 import pandas as pd
 import pytest
 
-from backend import attach_input_metadata, inventory_check, run_items_with_progress
+from backend import (UPLOAD_COLUMNS, apply_reuse_decisions, attach_input_metadata, decisions_from_review,
+                     inventory_check, parse_items, run_items_with_progress)
 import harmonize_workflow as workflow
 
 
@@ -120,3 +121,54 @@ def test_inventory_check_respects_manual_same_item_decision():
 
     assert routed['route'].tolist() == ['inventory', 'duplicate']
     assert forced['route'].tolist() == ['duplicate', 'duplicate']
+
+
+def csv_bytes(rows, columns=None):
+    return pd.DataFrame(rows, columns=columns).to_csv(index=False).encode()
+
+
+def test_uploaded_files_need_all_six_columns_and_no_empty_cells():
+    ok = parse_items(csv_bytes([item('PHQ_1', 'Feeling low')]), UPLOAD_COLUMNS)
+    assert list(ok.columns) == UPLOAD_COLUMNS
+
+    four_columns = csv_bytes([{k: v for k, v in item('PHQ_1', 'Feeling low').items()
+                               if k not in ('answer_options', 'scoring')}])
+    with pytest.raises(ValueError, match='answer_options, scoring'):
+        parse_items(four_columns, UPLOAD_COLUMNS)
+
+    blank_scoring = csv_bytes([{**item('PHQ_1', 'Feeling low'), 'scoring': ''}])
+    with pytest.raises(ValueError, match='empty'):
+        parse_items(blank_scoring, UPLOAD_COLUMNS)
+
+
+def test_reference_items_still_need_only_the_first_four_columns():
+    four_columns = csv_bytes([{k: v for k, v in item('PHQ_1', 'Feeling low').items()
+                               if k not in ('answer_options', 'scoring')}])
+    assert len(parse_items(four_columns)) == 1
+
+
+def test_possible_duplicates_are_reused_unless_unchecked():
+    text = "I feel tense or 'wound up'."
+    items = pd.DataFrame([
+        item('HADS_01_alt', text, 'HADS', 'anxiety'),
+        item('HADS_01_other', text, 'HADS', 'anxiety'),
+        item('HADS_99', 'A genuinely new question', 'HADS', 'anxiety'),
+    ])
+    keys = lambda row: ('anxiety', 'HADS', row)
+
+    default = apply_reuse_decisions(items, {})
+    assert default['reuse_match'].tolist() == [True, True, True]
+    assert inventory_check(default)['route'].tolist() == ['inventory', 'inventory', 'new']
+
+    decided = apply_reuse_decisions(items, {keys('HADS_01_other'): False})
+    assert decided['reuse_match'].tolist() == [True, False, True]
+    assert inventory_check(decided)['route'].tolist() == ['inventory', 'duplicate', 'new']
+
+
+def test_decisions_are_read_from_the_review_table():
+    review = pd.DataFrame([
+        {'same_item?': True, 'construct': 'anxiety', 'questionnaire': 'HADS', 'item_id': 'a'},
+        {'same_item?': False, 'construct': 'anxiety', 'questionnaire': 'HADS', 'item_id': 'b'},
+    ])
+    assert decisions_from_review(review) == {('anxiety', 'HADS', 'a'): True, ('anxiety', 'HADS', 'b'): False}
+    assert decisions_from_review(None) == {}
