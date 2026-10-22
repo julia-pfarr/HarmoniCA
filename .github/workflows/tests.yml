@@ -18,7 +18,7 @@ jobs:
           python-version: "3.13"
 
       - name: Install lightweight test dependencies
-        run: pip install pandas numpy gradio pytest
+        run: pip install pandas numpy pytest
 
       - name: Run tests
         run: pytest tests/ -v
@@ -35,7 +35,7 @@ jobs:
           python-version: "3.13"
 
       - name: Install package with all production dependencies
-        run: pip install -e ".[ui]" pytest
+        run: pip install -e . pytest
 
       - name: Run tests
         run: pytest tests/ -v

@@ -13,7 +13,7 @@ Diversity in the design of clinical assessment instruments creates fundamental i
 
 This tool offers mapping of individual questionnaire items from multiple instruments to pre-defined symptom dimensions. Dimension scores are subsequently transformed to allow comparability across different clinical instruments.
 
-![img](docs/image.png)
+![img](https://raw.githubusercontent.com/julia-pfarr/HarmoniCA/main/docs/image.png)
 
 ## How to use
 
@@ -22,10 +22,10 @@ This tool offers mapping of individual questionnaire items from multiple instrum
 Run harmonization:
 
 ``` 
-harmonica [-h] --items <items.csv> [--output OUTPUT] [--force-rerun] [--models-dir MODELS_DIR] [--inventory INVENTORY] 
+harmonica [-h] --items <items.csv> [--output OUTPUT] [--force-rerun] [--duplicates {ask,same,new}] [--models-dir MODELS_DIR] [--inventory INVENTORY] 
 ``` 
 
-This writes a results table to `<items>_harmonized.csv` (next to your input file), containing the questionnaires you included in `items.csv`. Use `-o <path>` to choose a different output location.
+This writes a results table to `<items>_harmonized.csv` (next to your input file), containing the questionnaires you included in `items.csv`. Use `-o <path>` to choose a different output location. The columns are `construct`, `questionnaire`, `item_id`, `item_text`, `dimension`, `dimension_label`, `confidence` and `source`, where `source` says for every item whether its assignment was reused from the `inventory` or predicted by the `model`; the web app writes the same columns.
 
 Your `items.csv` needs to look like this:
 ```
@@ -37,22 +37,46 @@ anxiety,DASS,DASS_04,I experienced breathing difficulty,
 ...
 ``` 
 
+Whitespace is trimmed and `construct` is read in lower case. If your file also has the columns `answer_options` and `scoring`, they are carried into the results, which is all the web app's score transformation needs.
+
 Models for each construct are pulled from [Huggingface](https://hf.co/collections/julia-pfarr/harmonica) during the harmonization process, so make sure to have an internet connection and enough local space (~1.5GB per model/construct).
 
-If one of your items has the same text as an item already in the inventory but under a different `item_id` (e.g. your `PHQ9_1` vs. the inventory's `PHQ-9_01`), HarmoniCA will detect it and ask you on the terminal whether it's the same item before reusing its cached assignment.
+If one of your items has the same text as an item already in the inventory but under a different `item_id` (e.g. your `PHQ9_1` vs. the inventory's `PHQ-9_01`), HarmoniCA will detect it and ask you on the terminal whether it's the same item before reusing its cached assignment (press Enter for "same item"). Use `--duplicates same` or `--duplicates new` to decide for all such items without being asked, for example in scripts.
 
-### Web UI
+New model predictions are added to the inventory file (`harmonica/inventory/harmonized_inventory.csv`), so that they can be contributed (see below).
 
-Prefer a browser over the command line? Install the UI extra and launch it:
+### Web app
+
+Prefer a browser over the command line? The repository contains a Streamlit app in [`harmonica-ui/`](https://github.com/julia-pfarr/HarmoniCA/blob/main/harmonica-ui/README.md). It is not part of the PyPI package, so run it from a clone:
 
 ```
-pip install "pyHarmoniCA[ui]"
-harmonica-ui
+git clone https://github.com/julia-pfarr/HarmoniCA.git
+cd HarmoniCA
+pip install -e .
+pip install -r harmonica-ui/requirements.txt
+cd harmonica-ui
+python -m streamlit run app.py
 ```
 
-This opens a local Gradio app with two tabs:
-- **Harmonize** — upload your `items.csv`, review any possible item_id/coding mismatches against the inventory (same confirmation as above, but as a checkbox table instead of a terminal prompt), run harmonization, and download the results CSV.
-- **Inventory Browser** — search/filter the existing `harmonized_inventory.csv` by construct, questionnaire, or item text.
+It guides you through five steps:
+
+1. **Upload**: pick questionnaires from the inventory, upload your own CSV/Excel files, or both. Uploaded files need six columns: `construct`, `questionnaire`, `item_id`, `item_text`, `answer_options` and `scoring` (a template is offered in the app).
+2. **Review & confirm**: items we think are already in the inventory are listed as possible duplicates. Tick the ones that are the same (same confirmation as the terminal prompt above, but as a list); the others go to the model.
+3. **Harmonization**: runs the model for the new items.
+4. **Results**: a table of the harmonized items, a review list for low-confidence model predictions (inventory items are expert consensus and never changed), charts, and the CSV download.
+5. **Score transformation**: download the research score-transformation code to turn your participants' item responses into comparable dimension scores.
+
+### Terminal and web app: what is the same, what differs
+
+Both use the same engine, inventory file, model folder and dimension definitions, and give the same results (same assignments, confidence and `source`, same columns) for the same items and decisions about duplicates.
+
+| | Terminal (`harmonica`) | Web app (`harmonica-ui`) |
+|---|---|---|
+| Possible duplicates (same wording, other `item_id`) | asked on the terminal, or `--duplicates same\|new` | ticked in a list, one decision per item |
+| Inventory | model predictions are appended to the inventory file | never edited; the new predictions are offered as a download ("New inventory rows"), ready for a pull request |
+| Input | items CSV | CSV/Excel with column mapping, and/or questionnaires picked straight from the inventory |
+| Reviewing results | no | review low-confidence model predictions, charts, table |
+| Scores | offline scoring bundle below | research score-transformation code (step 5) |
 
 ### Open a PR to contribute new harmonized questionnaires
 
@@ -61,6 +85,8 @@ The `harmonized_inventory.csv` get's updated automatically. We appreciate a Pull
 You can try everything first with the `test-items.csv` from this repo!
 
 ## Downloadable offline scoring
+
+> This is the **command-line** scoring bundle: participants supply raw answer options and the runner applies the scoring lookup, including reverse scoring. Step 5 of the [web app](https://github.com/julia-pfarr/HarmoniCA/blob/main/harmonica-ui/README.md) works differently: it ships the research score-transformation code, which expects participants' responses to be numeric item scores already (reverse-scored where needed).
 
 Generate a scoring ZIP alongside item harmonization:
 
@@ -123,6 +149,16 @@ moderate, 1 low, 0 none), not an estimated psychometric reliability coefficient.
 The local runner uses only Python's standard library: no package installation,
 model weights, network access, or participant-data upload is required. Keep
 participant responses and generated scores on the researcher's approved system.
+
+## Repository layout
+
+| Path | What it is |
+|---|---|
+| `src/harmonica/` | The `harmonica` command (`harmonize.py`), the engine (`harmonica/`), the inventory (`inventory/harmonized_inventory.csv`), the offline scoring bundle (`pipeline.py`, `local_scoring.py`) and `scripts/setup_encoders.py` for model files |
+| `src/harmonica/models/` | Downloaded model weights (not in git, fetched from Hugging Face on demand) |
+| `harmonica-ui/` | The Streamlit web app, see its [README](https://github.com/julia-pfarr/HarmoniCA/blob/main/harmonica-ui/README.md) |
+| `tests/` | Tests for the command-line package, the engine and the scoring bundle |
+| `test-items.csv`, `docs/` | A sample input file for the command line, and the image used above |
 
 ## The research behind this tool
 
