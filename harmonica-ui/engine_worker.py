@@ -28,6 +28,7 @@ if rerun_items:
     keep = [(c, q, i) not in rerun_items for c, q, i in zip(engine.inventory.construct, engine.inventory.questionnaire, engine.inventory.item_id)]
     engine.inventory = engine.inventory.loc[keep].copy()
 rows=[]
+n_before=len(engine.inventory)   # rows appended after this point are this run's new model predictions
 for (construct,questionnaire),group in items.groupby(['construct','questionnaire'],sort=False):
     # Text matches under different IDs never prompt on a hidden terminal: they are reused only
     # when the user confirmed them as the same item, otherwise processed as new items.
@@ -37,8 +38,13 @@ for (construct,questionnaire),group in items.groupby(['construct','questionnaire
         item=dict(item)
         if 'probability_distribution' in item:
             item['probability_distribution']=json.dumps(item['probability_distribution'])
-        item.update(construct=construct,questionnaire=questionnaire,source=result['source'])
+        item.setdefault('source',result['source'])   # the engine reports where each item comes from
+        item.update(construct=construct,questionnaire=questionnaire)
         rows.append(item)
     # Progress line read by backend.run_harmonica (prefix must match PROGRESS_PREFIX there)
     print('@@HARMONICA_PROGRESS '+json.dumps({'construct':construct,'questionnaire':questionnaire,'items':len(group)}),flush=True)
-pd.DataFrame(rows).to_csv(output,index=False)
+results=pd.DataFrame(rows)
+first=['construct','questionnaire','item_id','item_text','dimension','dimension_label','confidence','source']   # same column order as the command line
+results[first+[c for c in results.columns if c not in first]].to_csv(output,index=False)
+# What the command-line tool would have appended to the inventory, for users who want to contribute it
+engine.inventory.iloc[n_before:].to_csv(Path(output).with_name('new_inventory_rows.csv'),index=False)

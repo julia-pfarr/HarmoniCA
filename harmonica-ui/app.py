@@ -14,12 +14,19 @@ from datetime import datetime, timezone
 from pathlib import Path
 import pandas as pd
 import streamlit as st
-from backend import COLUMNS, ITEM_COLUMNS, SCORING_COLUMNS, SEPARATORS, detect_separator, inventory_check, load_response_options, parse_items, run_harmonica
+from backend import COLUMNS, ITEM_COLUMNS, SCORING_COLUMNS, SEPARATORS, detect_separator, inventory_check, load_response_options, parse_items, read_inventory, run_harmonica
 from score_kit import build_kit_zip, responses_template, unscored_questionnaires
 
-CATALOG = json.loads(Path(__file__).with_name('assets').joinpath('model_catalog.json').read_text())
 if os.environ.get('HARMONICA_SOURCE_DIR'):
     sys.path.insert(0, os.environ['HARMONICA_SOURCE_DIR'])
+# Constructs and dimension definitions come straight from the engine, like the command line (no second copy to drift)
+try:
+    from harmonica.harmonica import config as engine_config
+except ImportError:
+    engine_config = None
+CATALOG = ({'CONSTRUCTS': list(engine_config.CONSTRUCTS),
+            'DIMENSION_DESCRIPTIONS': {c: {str(k): v for k, v in dims.items()} for c, dims in engine_config.DIMENSION_DESCRIPTIONS.items()}}
+           if engine_config else {'CONSTRUCTS': [], 'DIMENSION_DESCRIPTIONS': {}})
 
 ASSETS = Path(__file__).with_name('assets')
 st.set_page_config(page_title='HarmoniCA', page_icon=str(ASSETS / 'favicon.png'), layout='wide')
@@ -231,6 +238,10 @@ st.markdown(f'''
   </div>
 </div>
 ''', unsafe_allow_html=True)
+if engine_config is None:
+    st.error('The HarmoniCA engine was not found, so the inventory and the models cannot be loaded. Install it with `pip install -e .` '
+             "in the repository root, or start the app with `HARMONICA_SOURCE_DIR=../src`.")
+    st.stop()
 
 items = None
 source_name = 'example_items.csv'
@@ -325,9 +336,8 @@ with results:
 
 @st.cache_data
 def load_inventory():
-    """The harmonized questionnaires that researchers can reuse, one row per item."""
-    return pd.read_csv(Path(__file__).with_name('assets')/'reference_inventory.csv', dtype=str,
-                       keep_default_na=False).drop_duplicates(['construct', 'questionnaire', 'item_id'], keep='last')
+    """The harmonized questionnaires that researchers can reuse (the engine's inventory, one row per item)."""
+    return read_inventory(dedupe=True)
 
 
 def dup_key(construct, questionnaire, item_id):
@@ -500,7 +510,6 @@ if not selected.empty:
     n_model = n_total - n_inventory
     n_groups = selected.groupby(['construct', 'questionnaire']).ngroups
     group_model_counts = routed[~reused].groupby(['construct', 'questionnaire']).size().to_dict()
-    model_keys = [review_key(*k) for k, r in zip(keys, reused) if not r]   # the items the model runs on
     # Answers change what the run does, so they are part of what results are compared against.
     fingerprint = hashlib.sha256(selected.to_csv(index=False).encode()
                                  + json.dumps(decisions, sort_keys=True).encode()).hexdigest()
@@ -512,7 +521,7 @@ job = st.session_state.get('run_job')
 running = job is not None and job['status'] == 'running'
 if job is not None and job['status'] == 'done' and not job.get('collected'):
     job['collected'] = True
-    st.session_state.update(result=job['result'], log=job['log'], manifest=job['manifest'],
+    st.session_state.update(result=job['result'], log=job['log'], manifest=job['manifest'], new_inventory_rows=job['new_inventory'],
                             run_summary=job, result_fingerprint=job['fingerprint'], review_decisions={})
 has_result = 'result' in st.session_state
 # Results are kept when the selection changes; they're only replaced by a new run.
@@ -582,11 +591,17 @@ def flagged_items(all_items, threshold):
 
 def download_bar():
     """'Download output' block at the end of the Overview subpage."""
+    new_rows = st.session_state.get('new_inventory_rows')
     with st.container(border=True):
-        title, button = st.columns([3, 1], vertical_alignment='center')
-        title.markdown('<div class="hca-card-title">Download output</div>', unsafe_allow_html=True)
-        button.download_button('Harmonized items (CSV)', final_result.to_csv(index=False).encode(), 'harmonized_items.csv', 'text/csv',
-                               type='primary', width='stretch', icon=':material/download:', key='dl_csv')
+        columns = st.columns([2, 1, 1] if new_rows is not None and len(new_rows) else [3, 1], vertical_alignment='center')
+        columns[0].markdown('<div class="hca-card-title">Download output</div>', unsafe_allow_html=True)
+        columns[1].download_button('Harmonized items (CSV)', final_result.to_csv(index=False).encode(), 'harmonized_items.csv', 'text/csv',
+                                   type='primary', width='stretch', icon=':material/download:', key='dl_csv')
+        if len(columns) == 3:
+            columns[2].download_button('New inventory rows (CSV)', new_rows.to_csv(index=False).encode(), 'new_inventory_rows.csv', 'text/csv',
+                                       width='stretch', icon=':material/download:', key='dl_inventory',
+                                       help="The items the model predicted in this run, in the inventory's file format, exactly what the command-line "
+                                            'tool would add to harmonized_inventory.csv. Contribute them with a pull request.')
 
 
 def run_job(job, df, timeout):
@@ -599,16 +614,12 @@ def run_job(job, df, timeout):
                                     f"{event['questionnaire']} ({event['construct']}): {event['items']} items done, "
                                     f"{job['group_model_counts'].get(key, 0)} sent to the model."))
     try:
-        data, result, log = run_harmonica(df, timeout=timeout, on_progress=on_progress, decisions=job['decisions'])
-        # The engine reports one source per questionnaire; make it per item: only these items were predicted by the model.
-        model_keys = set(job['model_keys'])
-        result['source'] = ['model' if review_key(c, q, i) in model_keys else 'inventory'
-                            for c, q, i in zip(result.construct, result.questionnaire, result.item_id)]
+        data, result, log, new_rows = run_harmonica(df, timeout=timeout, on_progress=on_progress, decisions=job['decisions'])
         # Carry each item's answer options and scoring into the result, so the downloaded CSV can be scored
         result = result.merge(df[['construct', 'questionnaire', 'item_id'] + SCORING_COLUMNS], on=['construct', 'questionnaire', 'item_id'], how='left')
         result[SCORING_COLUMNS] = result[SCORING_COLUMNS].fillna('')
         job['activity'].append((time.monotonic() - job['started'], 'Results combined and ready for review.'))
-        job.update(data=data, result=result, log=log, status='done')
+        job.update(data=data, result=result, log=log, new_inventory=new_rows, status='done')
     except Exception as exc:
         job.update(error=str(exc), status='error')
     job['elapsed'] = time.monotonic() - job['started']
@@ -689,7 +700,7 @@ with check:
                       unsafe_allow_html=True)
         context = {'source_name': source_name, 'fingerprint': fingerprint,
                    'n_total': n_total, 'n_inventory': n_inventory, 'n_duplicate': n_duplicate, 'n_model': n_model,
-                   'n_groups': n_groups, 'group_model_counts': group_model_counts, 'model_keys': model_keys, 'decisions': decisions,
+                   'n_groups': n_groups, 'group_model_counts': group_model_counts, 'decisions': decisions,
                    'manifest': {'created_utc': datetime.now(timezone.utc).isoformat(), 'input_file': source_name,
                                 'input_sha256': hashlib.sha256(raw).hexdigest() if raw else '',
                                 'submitted_sha256': hashlib.sha256(selected.to_csv(index=False).encode()).hexdigest(),

@@ -16,6 +16,29 @@ SEPARATORS = [',', ';', '\t']
 RESPONSE_OPTIONS_PATH = Path(__file__).resolve().parent/'assets'/'questionnaire_response_options.csv'
 
 
+def engine_dir():
+    """Folder of the HarmoniCA engine package (installed, or found through HARMONICA_SOURCE_DIR).
+
+    The inventory and the default model folder live there, exactly as for the command-line tool.
+    """
+    import importlib.util
+    spec = importlib.util.find_spec('harmonica')
+    if spec is None or not spec.submodule_search_locations:
+        raise FileNotFoundError('The HarmoniCA engine was not found. Install it (pip install -e . in the repository root) '
+                                'or set HARMONICA_SOURCE_DIR to the repository\'s src folder.')
+    return Path(list(spec.submodule_search_locations)[0])
+
+
+def inventory_file():
+    return engine_dir()/'inventory'/'harmonized_inventory.csv'
+
+
+def read_inventory(dedupe=False):
+    """The engine's inventory, as text. `dedupe` keeps the last row per (construct, questionnaire, item_id)."""
+    inv = pd.read_csv(inventory_file(), dtype=str, keep_default_na=False)
+    return inv.drop_duplicates(['construct', 'questionnaire', 'item_id'], keep='last') if dedupe else inv
+
+
 def load_response_options():
     """Answer options and scoring of the inventory questionnaires that have them (one row per item)."""
     options = pd.read_csv(RESPONSE_OPTIONS_PATH, dtype=str, keep_default_na=False, encoding='utf-8-sig')
@@ -114,7 +137,7 @@ def inventory_check(df):
     Both kinds of match also get the inventory item in 'matched_item_id', 'matched_item_text' and
     'matched_dimension_label', so a UI can show what each item was matched to.
     """
-    inv = pd.read_csv(Path(__file__).resolve().parent/'assets'/'reference_inventory.csv', dtype=str, keep_default_na=False)
+    inv = read_inventory()
     inv_key, inv_text = {}, {}
     for r in inv.itertuples():
         inv_key[(r.construct, r.questionnaire, r.item_id)] = r
@@ -149,6 +172,9 @@ def run_harmonica(df, timeout=1800, on_progress=None, decisions=None):
     `event` is None on a plain tick (e.g. to refresh elapsed time), or a dict
     {'construct', 'questionnaire', 'items'} each time a questionnaire finishes.
 
+    Returns (results CSV bytes, results, engine log, new_rows): `new_rows` are the model predictions the engine added to its
+    private inventory copy, in the inventory's file format (what the command-line tool would append to the real inventory).
+
     `decisions` carries the user's answers about items we think are already in the inventory:
     {'same_items': [[construct, questionnaire, item_id], ...]} are items with a different item ID that the user confirmed
     as the same item (their inventory assignment is reused), {'rerun_items': [[...], ...]} are exact matches the user
@@ -160,13 +186,13 @@ def run_harmonica(df, timeout=1800, on_progress=None, decisions=None):
     import threading
     import time
     root = Path(__file__).resolve().parent
-    cache = Path(os.environ.get('HARMONICA_MODELS_DIR', str(Path.home()/'.cache'/'harmonica-ui'/'models'))).expanduser().resolve()
+    cache = Path(os.environ.get('HARMONICA_MODELS_DIR') or engine_dir()/'models').expanduser().resolve()   # same default as the command line
     cache.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='harmonica-ui-') as directory:
         work = Path(directory)
         source, target, inventory = work/'items.csv', work/'results.csv', work/'inventory.csv'
         df.to_csv(source, index=False)
-        shutil.copyfile(root/'assets'/'reference_inventory.csv', inventory)
+        shutil.copyfile(inventory_file(), inventory)      # a private copy: the original inventory is never edited here
         command = [sys.executable, str(root/'engine_worker.py'), str(source), str(target), str(inventory), str(cache)]
         if decisions:
             (work/'decisions.json').write_text(json.dumps(decisions), encoding='utf-8')
@@ -215,4 +241,6 @@ def run_harmonica(df, timeout=1800, on_progress=None, decisions=None):
         keys=['construct','questionnaire','item_id']
         if len(results)!=len(df) or set(map(tuple,results[keys].values)) != set(map(tuple,df[keys].values)):
             raise RuntimeError('Output items do not match submitted items. Results were rejected.')
-        return data, results, log
+        added = target.with_name('new_inventory_rows.csv')
+        new_rows = pd.read_csv(added, dtype=str, keep_default_na=False) if added.is_file() else pd.DataFrame()
+        return data, results, log, new_rows

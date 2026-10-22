@@ -4,7 +4,7 @@ The browser app of [HarmoniCA](https://github.com/julia-pfarr/HarmoniCA), built 
 
 ## Start
 
-The app lives in this repository and is not part of the PyPI package. From a checkout, with Python 3.13 or newer:
+The app lives in this repository and is not part of the PyPI package. It uses the same engine, inventory file (`src/harmonica/inventory/harmonized_inventory.csv`), model folder (`src/harmonica/models`) and dimension definitions as the `harmonica` command, so both tools give the same results. From a checkout, with Python 3.13 or newer:
 
 ```bash
 pip install -e ..                      # the HarmoniCA engine (the repository root)
@@ -12,7 +12,7 @@ pip install -r requirements.txt        # Streamlit and the app's dependencies
 python -m streamlit run app.py --server.address 127.0.0.1
 ```
 
-Open http://localhost:8501 and stop with Ctrl+C. Run it from inside this folder so that `.streamlit/config.toml` (theme) is loaded. Instead of installing the engine you can point the app at the source tree: `HARMONICA_SOURCE_DIR=../src python -m streamlit run app.py`. The header shows whether the engine was found.
+Open http://localhost:8501 and stop with Ctrl+C. Run it from inside this folder so that `.streamlit/config.toml` (theme) is loaded. Without the engine the app shows a message instead of the steps. Instead of installing the engine you can point the app at the source tree: `HARMONICA_SOURCE_DIR=../src python -m streamlit run app.py`. The header shows whether the engine was found.
 
 ## Three ways to start
 
@@ -71,7 +71,7 @@ These are **harmonized item mappings**, not participant-level harmonized scores.
 
 ## How it runs
 
-Each run seeds a private copy of the full inventory (the models need it as their reference pool) in a separate temporary working directory and never edits the original. Changed wording under an existing item ID cannot silently retrieve a stale cached assignment, and an item with the same wording under a different ID is reused only if you confirm it on **Review & confirm**. Output item IDs and counts must match the submitted input before results are accepted. Model weights are cached in `~/.cache/harmonica-ui/models`; downloads need internet and disk space, and initial inference can take several minutes. Runs stop automatically after 30 minutes (shown on the Harmonization page). This is a local research app, not a public multi-user service.
+Each run seeds a private copy of the engine's inventory (the models need it as their reference pool) in a separate temporary working directory and never edits the original; the rows the model adds to that copy come back as the **New inventory rows** download on Results, exactly what the `harmonica` command would append to the inventory. Changed wording under an existing item ID cannot silently retrieve a stale cached assignment, and an item with the same wording under a different ID is reused only if you confirm it on **Review & confirm**. Output item IDs and counts must match the submitted input before results are accepted. Model weights are read from, and downloaded to, the engine's model folder (`HARMONICA_MODELS_DIR` overrides it); downloads need internet and disk space, and initial inference can take several minutes. Runs stop automatically after 30 minutes (shown on the Harmonization page). This is a local research app, not a public multi-user service.
 
 Optional environment variables: `HARMONICA_MODELS_DIR` (persistent model path) and `HARMONICA_SOURCE_DIR` (absolute path of the repository's `src` directory, to use a source checkout instead of an installed package).
 
@@ -84,13 +84,13 @@ Optional environment variables: `HARMONICA_MODELS_DIR` (persistent model path) a
 | `engine_worker.py` | Runs the HarmoniCA engine in an isolated process with the user's confirmations |
 | `visuals.py` | The two charts on Explore results, in the logo palette |
 | `score_kit.py` | Builds the score-transformation ZIP, the responses template and the "not included" list |
-| `assets/` | Inventory snapshot, answer options and scoring (`questionnaire_response_options.csv`), dimension catalog, the score-transformation code, logo files |
+| `assets/` | Answer options and scoring (`questionnaire_response_options.csv`), the score-transformation code, logo files |
 | `example_items.csv` | The input template offered on the Upload step |
 | `.streamlit/config.toml` | Theme and toolbar settings |
 
 ## Attribution
 
-`assets/reference_inventory.csv` is a snapshot of the HarmoniCA inventory (`src/harmonica/inventory/harmonized_inventory.csv`) without repeated IDs; `assets/model_catalog.json` is derived from the engine's `config.py`. See `assets/UPSTREAM_LICENSE` (CC BY-NC 4.0).
+The inventory, the constructs and the dimension definitions come from the HarmoniCA engine itself. See `assets/UPSTREAM_LICENSE` (CC BY-NC 4.0).
 
 ## Tests
 
