@@ -1,12 +1,18 @@
 [theme]
-# Colours and font from the HarmoniCA Figma template (same as the Gradio app)
+# Colours from the HarmoniCA logo (petrol blue); the app's CSS variables in app.py use the same values
 base = "light"
-primaryColor = "#A33B5C"
-backgroundColor = "#F6F7F9"
+primaryColor = "#0F4C6B"
+backgroundColor = "#FFFFFF"
 secondaryBackgroundColor = "#FFFFFF"
-textColor = "#1F2430"
-linkColor = "#A33B5C"
-borderColor = "#E5E7EB"
+textColor = "#16303D"
+linkColor = "#0F4C6B"
+borderColor = "#DCE6EB"
+# Semantic colours (info / success / warning / error banners) from the logo spectrum
+blueColor = "#2A6DB5"
+greenColor = "#4A8433"
+yellowColor = "#D48C12"
+orangeColor = "#E8834E"
+redColor = "#C45A24"
 showWidgetBorder = true
 baseRadius = "8px"
 font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
@@ -14,6 +20,10 @@ codeFont = "JetBrains Mono:https://fonts.googleapis.com/css2?family=JetBrains+Mo
 
 [theme.sidebar]
 backgroundColor = "#FFFFFF"
+
+[client]
+# No Deploy button / developer toolbar for users
+toolbarMode = "minimal"
 
 [server]
 maxUploadSize = 10

@@ -1,5 +1,7 @@
 """CLI adapter: no shell interpolation and no invented HarmoniCA predictions."""
+import ast
 import io
+import math
 import os
 import shutil
 import subprocess
@@ -7,8 +9,38 @@ import tempfile
 from pathlib import Path
 import pandas as pd
 
-COLUMNS = ['construct', 'questionnaire', 'item_id', 'item_text']
+COLUMNS = ['construct', 'questionnaire', 'item_id', 'item_text']   # what the harmonization engine reads
+SCORING_COLUMNS = ['answer_options', 'scoring']                       # needed for the score transformation
+ITEM_COLUMNS = COLUMNS + SCORING_COLUMNS
 SEPARATORS = [',', ';', '\t']
+RESPONSE_OPTIONS_PATH = Path(__file__).resolve().parent/'assets'/'questionnaire_response_options.csv'
+
+
+def load_response_options():
+    """Answer options and scoring of the inventory questionnaires that have them (one row per item)."""
+    options = pd.read_csv(RESPONSE_OPTIONS_PATH, dtype=str, keep_default_na=False, encoding='utf-8-sig')
+    return options[['construct', 'questionnaire', 'item_id'] + SCORING_COLUMNS].drop_duplicates(['construct', 'questionnaire', 'item_id'])
+
+
+def scoring_problem(scoring):
+    """Why a scoring value cannot be used, or None when it is fine.
+
+    The score transformation only reads `scoring` (to get each item's maximum score), so that is what is validated.
+    answer_options is documentation of the answer choices and only has to be filled in.
+    """
+    try:
+        scores = ast.literal_eval(scoring)
+    except (ValueError, SyntaxError):
+        return 'scoring must be a list of numbers, for example [0, 1, 2, 3]'
+    if not isinstance(scores, list) or not scores:
+        return 'scoring must be a non-empty list of numbers, for example [0, 1, 2, 3]'
+    for value in scores:
+        try:
+            if math.isfinite(float(value)):
+                return None
+        except (TypeError, ValueError):
+            continue
+    return 'scoring needs at least one numeric value'
 
 
 def detect_separator(data):
@@ -22,7 +54,12 @@ def detect_separator(data):
     return best if counts[best] else ','
 
 
-def parse_items(data):
+def parse_items(data, scoring='required'):
+    """Read and validate an items CSV.
+
+    scoring='required' (uploaded files): answer_options and scoring must be present, filled and valid.
+    scoring='optional' (inventory items are combined in): the two columns may be empty, but are valid when filled.
+    """
     try:
         df = pd.read_csv(io.BytesIO(data), dtype=str, keep_default_na=False, encoding='utf-8-sig')
     except Exception as exc:
@@ -30,22 +67,34 @@ def parse_items(data):
     df.columns = df.columns.str.strip()
     if df.columns.duplicated().any():
         raise ValueError('Column names must be unique.')
-    missing = set(COLUMNS) - set(df.columns)
+    required = ITEM_COLUMNS if scoring == 'required' else COLUMNS
+    missing = set(required) - set(df.columns)
     if missing:
-        raise ValueError('Missing columns: ' + ', '.join(sorted(missing)))
-    df = df[COLUMNS].copy()
-    for col in COLUMNS:
+        raise ValueError('Missing columns: ' + ', '.join(sorted(missing, key=ITEM_COLUMNS.index)))
+    for col in SCORING_COLUMNS:
+        if col not in df.columns:
+            df[col] = ''
+    df = df[ITEM_COLUMNS].copy()
+    for col in ITEM_COLUMNS:
         df[col] = df[col].str.strip()
     df['construct'] = df['construct'].str.lower()
     if df.empty:
         raise ValueError('The CSV contains no items.')
     if len(df) > 10000:
         raise ValueError('Please use at most 10,000 items per run.')
-    bad = df.eq('').any(axis=1)
-    if bad.any():
-        raise ValueError('Required values are empty on CSV line(s): ' + ', '.join(str(i+2) for i in df.index[bad][:10]))
+    empty = df[required].eq('')
+    if empty.values.any():
+        where = [f"{col} (CSV line(s) {', '.join(str(i + 2) for i in df.index[empty[col]][:10])})" for col in required if empty[col].any()]
+        raise ValueError('Required values are empty in ' + '; '.join(where))
     if df.duplicated(['construct', 'questionnaire', 'item_id']).any():
         raise ValueError('Duplicate item IDs within the same questionnaire and construct. Resolve them before running.')
+    problems = []
+    for line, scores in enumerate(df.scoring, start=2):
+        problem = scoring_problem(scores) if scores else None
+        if problem:
+            problems.append(f'line {line}: {problem}')
+    if problems:
+        raise ValueError('Invalid scoring on ' + '; '.join(problems[:5]) + (f' (and {len(problems) - 5} more)' if len(problems) > 5 else ''))
     return df
 
 
@@ -54,42 +103,56 @@ def _normalize(text):
     return ' '.join(str(text).strip().lower().split()).strip(' .?!"\'')
 
 
-def inventory_check(df, force=False):
+def inventory_check(df):
     """Classify items the way the engine will treat them, without running it.
 
     Returns a copy of `df` with a 'route' column:
       'inventory' — exact match (same construct, questionnaire, item_id and wording): reused
-      'duplicate' — same wording as an inventory item under a different item_id: sent to the model
+      'duplicate' — same wording as an inventory item under a different item_id: reused only if the user
+                    confirms it is the same item
       'new'       — not in the inventory: sent to the model
-    With `force`, every item is sent to the model: exact matches become 'new' (they
-    are re-run, not duplicates).
+    Both kinds of match also get the inventory item in 'matched_item_id', 'matched_item_text' and
+    'matched_dimension_label', so a UI can show what each item was matched to.
     """
     inv = pd.read_csv(Path(__file__).resolve().parent/'assets'/'reference_inventory.csv', dtype=str, keep_default_na=False)
-    inv_key = {(r.construct, r.questionnaire, r.item_id): _normalize(r.item_text) for r in inv.itertuples()}
-    inv_text = {(r.construct, r.questionnaire, _normalize(r.item_text)) for r in inv.itertuples()}
-    routes = []
+    inv_key, inv_text = {}, {}
+    for r in inv.itertuples():
+        inv_key[(r.construct, r.questionnaire, r.item_id)] = r
+        # First row per wording, like the engine's candidate lookup
+        inv_text.setdefault((r.construct, r.questionnaire, _normalize(r.item_text)), r)
+    routes, matched = [], []
     for r in df.itertuples():
         text = _normalize(r.item_text)
-        if inv_key.get((r.construct, r.questionnaire, r.item_id)) == text:
-            routes.append('new' if force else 'inventory')
+        found = inv_key.get((r.construct, r.questionnaire, r.item_id))
+        if found is not None and _normalize(found.item_text) == text:
+            routes.append('inventory')
         elif (r.construct, r.questionnaire, text) in inv_text:
             routes.append('duplicate')
+            found = inv_text[(r.construct, r.questionnaire, text)]
         else:
             routes.append('new')
+            found = None
+        matched.append((found.item_id, found.item_text, found.dimension_label) if found is not None else ('', '', ''))
     out = df.copy()
     out['route'] = routes
+    out[['matched_item_id', 'matched_item_text', 'matched_dimension_label']] = matched
     return out
 
 
 PROGRESS_PREFIX = '@@HARMONICA_PROGRESS '
 
 
-def run_harmonica(df, force=False, timeout=1800, on_progress=None):
+def run_harmonica(df, timeout=1800, on_progress=None, decisions=None):
     """Run the engine in an isolated worker process.
 
     `on_progress(event)` is called about twice a second while the worker runs:
     `event` is None on a plain tick (e.g. to refresh elapsed time), or a dict
     {'construct', 'questionnaire', 'items'} each time a questionnaire finishes.
+
+    `decisions` carries the user's answers about items we think are already in the inventory:
+    {'same_items': [[construct, questionnaire, item_id], ...]} are items with a different item ID that the user confirmed
+    as the same item (their inventory assignment is reused), {'rerun_items': [[...], ...]} are exact matches the user
+    said are not the same, so the model must run on them.
     """
     import json
     import queue
@@ -104,7 +167,10 @@ def run_harmonica(df, force=False, timeout=1800, on_progress=None):
         source, target, inventory = work/'items.csv', work/'results.csv', work/'inventory.csv'
         df.to_csv(source, index=False)
         shutil.copyfile(root/'assets'/'reference_inventory.csv', inventory)
-        command = [sys.executable, str(root/'engine_worker.py'), str(source), str(target), str(inventory), str(cache), '1' if force else '0']
+        command = [sys.executable, str(root/'engine_worker.py'), str(source), str(target), str(inventory), str(cache)]
+        if decisions:
+            (work/'decisions.json').write_text(json.dumps(decisions), encoding='utf-8')
+            command.append(str(work/'decisions.json'))
         proc = subprocess.Popen(command, cwd=work, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
                                 text=True, encoding='utf-8', errors='replace', env={**os.environ, 'PYTHONUNBUFFERED': '1'})
         lines = queue.Queue()
