@@ -150,7 +150,8 @@ class HarmoniCA:
         -------
         dict with keys:
           'assignments' : list of dicts (item_id, item_text, dimension,
-                          dimension_label, confidence)
+                          dimension_label, confidence, source), where source is
+                          'inventory' (reused) or 'model' (predicted now)
           'source'      : 'inventory', 'model', or 'mixed'
           'questionnaire': questionnaire name
           'construct'   : construct name
@@ -173,6 +174,9 @@ class HarmoniCA:
                     confirm_match or self._default_confirm_match,
                 )
 
+        # Every assignment says where it comes from, so callers do not have to infer it from the group
+        cached = [{**a, 'source': 'inventory'} for a in cached]
+
         if not missing_items:
             return {
                 'assignments':  cached,
@@ -188,6 +192,7 @@ class HarmoniCA:
 
         # 3. Update inventory with the newly predicted items
         self._update_inventory(questionnaire, construct, new_assignments)
+        new_assignments = [{**a, 'source': 'model'} for a in new_assignments]
 
         # 4. Merge cached + newly predicted assignments, preserving input order
         order = {it['item_id']: i for i, it in enumerate(items)}
@@ -317,10 +322,10 @@ class HarmoniCA:
             f"looks identical to inventory item '{inv_row['item_id']}' "
             f"({inv_row['item_text']!r}), already assigned to dimension "
             f"{inv_row['dimension']} ({inv_row['dimension_label']}).\n"
-            f"Did you mean this item? Reuse its assignment instead of re-running the model? [y/N]: "
+            f"Did you mean this item? Reuse its assignment instead of re-running the model? [Y/n]: "
         )
         answer = input(prompt).strip().lower()
-        return answer in ('y', 'yes')
+        return answer in ('', 'y', 'yes')   # Enter = same item, like the web app's default
 
     def _update_inventory(
         self,

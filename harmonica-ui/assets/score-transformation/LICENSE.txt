@@ -1,0 +1,8 @@
+Score transformation code from the ENIGMA-PD questionnaire harmonization project
+(psych-in-harmony) by Julia-Katharina Pfarr, 2026.
+
+Licensed under Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0):
+https://creativecommons.org/licenses/by-nc/4.0/
+
+The files in research_code/ (score_transformation.py, create_item_dimension_mapping.py) are the research code, unchanged.
+run_score_transformation.py is a thin wrapper that applies them to a HarmoniCA harmonized CSV.

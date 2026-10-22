@@ -895,3 +895,6 @@ SCL-90_85,The idea that you should be punished for your sins.,psychosis,SCL-90,2
 SCL-90_87,The idea that something serious is wrong with your body.,psychosis,SCL-90,2,Delusions,0.693,expert_consensus,2026-06-04T14:02:32,
 SCL-90_88,Never feeling close to another person.,psychosis,SCL-90,-1,Does not fit,0.706,expert_consensus,2026-06-04T14:02:32,
 SCL-90_90,The idea that something is wrong with your mind.,psychosis,SCL-90,-1,Does not fit,1.0,expert_reviewed,2026-06-04T14:02:32,
+TESTQ_01,I had trouble enjoying my usual hobbies.,depression,TEST-Q,4,Activity & interest deficits,0.8765,model_prediction,2026-10-07T19:59:23.640993+00:00,ft_knn
+TESTQ_02,I felt like a burden to the people around me.,depression,TEST-Q,2,Cognitive & self-perception,0.8696,model_prediction,2026-10-07T19:59:23.640993+00:00,ft_knn
+TESTQ_03,My energy was low for most of the day.,depression,TEST-Q,3,Somatic & vegetative symptoms,0.8782,model_prediction,2026-10-07T19:59:23.640993+00:00,ft_knn
